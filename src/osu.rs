@@ -30,8 +30,10 @@ pub fn get_osu_window_title() -> Option<String> {
 }
 
 pub fn separate_title_and_artist(title: &str) -> (String, String) {
+    let separator_index = title.find(" - ").unwrap();
+
     (
-        title.chars().skip(title.find(" - ").unwrap() + 3).collect(),
-        title.chars().take(title.find(" - ").unwrap()).collect(),
+        title.chars().skip(separator_index + 3).collect(),
+        title.chars().take(separator_index).collect(),
     )
 }
