@@ -21,24 +21,16 @@ async fn check_loop(scrobbler: rustfm_scrobble::Scrobbler, old_title: String) {
                 println!("osu! is playing: {}", new_title);
 
                 /*
-                match spotify::get_track(&new_title).await {
-                    Some(track) => {
-                        last_fm::set_now_playing(
-                            &scrobbler,
-                            &track.title,
-                            &track.artist,
-                            &track.album,
-                        );
+                if let Some(track) = spotify::get_track(&new_title).await {
+                    last_fm::set_now_playing(&scrobbler, &track.title, &track.artist, &track.album);
 
-                        println!(
-                            "Set now playing to {} by {} on {} (length: {}s)!",
-                            &track.title,
-                            &track.artist,
-                            &track.album,
-                            &track.length / 1000
-                        );
-                    }
-                    None => (),
+                    println!(
+                        "Set now playing to {} by {} on {} (length: {}s)!",
+                        &track.title,
+                        &track.artist,
+                        &track.album,
+                        &track.length / 1000
+                    );
                 }
                 */
             }
