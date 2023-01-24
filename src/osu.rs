@@ -1,6 +1,6 @@
 use window_titles::{Connection, ConnectionTrait};
 
-fn get_last_index(string: &String, target_char: &String) -> usize {
+fn get_last_index(string: &str, target_char: &str) -> usize {
     let mut last_index = 0;
 
     for (index, char) in string.chars().enumerate() {
