@@ -9,15 +9,21 @@ mod spotify;
 
 #[async_recursion]
 async fn check_loop(scrobbler: rustfm_scrobble::Scrobbler, old_title: String) {
-    let mut _title = old_title.to_string();
+    let mut title = old_title.to_string();
 
     match osu::get_osu_window_title() {
         Some(new_title) => {
-            let (title, artist) = osu::separate_title_and_artist(&new_title);
-            last_fm::set_now_playing(&scrobbler, &title, &artist, &title);
+            let (separated_title, separated_artist) = osu::separate_title_and_artist(&new_title);
+
+            last_fm::set_now_playing(
+                &scrobbler,
+                &separated_title,
+                &separated_artist,
+                &separated_title,
+            );
 
             if new_title != old_title {
-                _title = new_title.to_string();
+                title = new_title.to_string();
                 println!("osu! is playing: {}", new_title);
 
                 /*
@@ -36,8 +42,8 @@ async fn check_loop(scrobbler: rustfm_scrobble::Scrobbler, old_title: String) {
             }
         }
         None => {
-            if _title != "" {
-                _title = String::from("");
+            if old_title != "" {
+                title = String::from("");
                 println!("osu! is playing: -");
             }
         }
@@ -48,7 +54,7 @@ async fn check_loop(scrobbler: rustfm_scrobble::Scrobbler, old_title: String) {
     interval.tick().await;
     interval.tick().await;
 
-    check_loop(scrobbler, _title).await
+    check_loop(scrobbler, title).await
 }
 
 #[main]
