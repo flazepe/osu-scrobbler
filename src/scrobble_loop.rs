@@ -1,8 +1,8 @@
-use crate::config::get_config;
-use crate::last_fm::LastfmScrobbler;
-use crate::osu::nerinyan::get_beatmapset;
-use crate::osu::scrobble::OsuScrobble;
-use crate::osu::window::get_osu_window_details;
+use crate::{
+    config::get_config,
+    last_fm::LastfmScrobbler,
+    osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_osu_window_details},
+};
 use async_recursion::async_recursion;
 use std::time::Duration;
 use tokio::time;

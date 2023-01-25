@@ -1,7 +1,6 @@
 use crate::config::get_config;
 use crate::last_fm::LastfmScrobbler;
-use crate::osu::nerinyan::Beatmapset;
-use crate::osu::window::OsuWindowDetails;
+use crate::osu::{nerinyan::Beatmapset, window::OsuWindowDetails};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
