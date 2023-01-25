@@ -2,21 +2,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SpotifyToken {
     client_id: String,
     access_token: String,
-    access_token_expiration_timestamp_ms: usize,
+    access_token_expiration_timestamp_ms: u64,
     is_anonymous: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SpotifyTrack {
     pub title: String,
     pub artist: String,
     pub album: String,
-    pub length: usize,
+    pub length: u64,
 }
 
 // (String, usize)
@@ -55,15 +55,15 @@ pub async fn get_track(query: &str) -> Option<SpotifyTrack> {
     }
 
     Some(SpotifyTrack {
-        title: track["name"].as_str().unwrap().to_string(),
+        title: track["name"].as_str().unwrap().to_owned(),
         artist: track["artists"]["items"][0]["profile"]["name"]
             .as_str()
             .unwrap()
-            .to_string(),
-        album: track["albumOfTrack"]["name"].as_str().unwrap().to_string(),
+            .to_owned(),
+        album: track["albumOfTrack"]["name"].as_str().unwrap().to_owned(),
         length: track["duration"]["totalMilliseconds"]
             .to_string()
-            .parse::<usize>()
+            .parse::<u64>()
             .unwrap(),
     })
 }

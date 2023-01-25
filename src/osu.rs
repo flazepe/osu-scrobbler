@@ -1,10 +1,18 @@
 use window_titles::{Connection, ConnectionTrait};
 
-fn get_last_index(string: &str, target_char: &str) -> usize {
+#[derive(Clone, Debug)]
+pub struct OsuWindowDetails {
+    pub raw_title: String,
+    pub artist: String,
+    pub title: String,
+    pub beatmap: String,
+}
+
+fn get_last_index(string: &str, target_char: &char) -> usize {
     let mut last_index = 0;
 
     for (index, char) in string.chars().enumerate() {
-        if char.to_string() == target_char.to_string() {
+        if &char == target_char {
             last_index = index;
         }
     }
@@ -12,28 +20,35 @@ fn get_last_index(string: &str, target_char: &str) -> usize {
     last_index
 }
 
-pub fn get_osu_window_title() -> Option<String> {
+fn get_osu_window_title() -> Option<String> {
     for title in Connection::new().unwrap().window_titles().unwrap() {
         if title.starts_with("osu!") && title.contains(['-', ']']) {
             let title: String = title.chars().skip(8).collect();
 
-            return Some(
-                title
-                    .chars()
-                    .take(get_last_index(&title, &"[".to_string()) - 1)
-                    .collect::<String>(),
-            );
+            return Some(title);
         }
     }
 
     None
 }
 
-pub fn separate_title_and_artist(title: &str) -> (String, String) {
-    let separator_index = title.find(" - ").unwrap();
+pub fn get_osu_window_details() -> Option<OsuWindowDetails> {
+    if let Some(title) = get_osu_window_title() {
+        let beatmap_index = get_last_index(&title, &'[') - 1;
+        let beatmap: String = title.chars().skip(beatmap_index + 2).collect();
+        let artist_separator_index = title.find(" - ").unwrap();
 
-    (
-        title.chars().skip(separator_index + 3).collect(),
-        title.chars().take(separator_index).collect(),
-    )
+        return Some(OsuWindowDetails {
+            raw_title: title.to_string(),
+            title: title
+                .chars()
+                .take(beatmap_index)
+                .skip(artist_separator_index + 3)
+                .collect(),
+            artist: title.chars().take(artist_separator_index).collect(),
+            beatmap: beatmap.chars().take(beatmap.len() - 1).collect(),
+        });
+    }
+
+    None
 }
