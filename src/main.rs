@@ -4,7 +4,6 @@ mod nerinyan;
 mod osu;
 mod osu_scrobble;
 mod scrobble_loop;
-mod spotify;
 
 use tokio::main;
 
