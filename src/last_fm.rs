@@ -1,5 +1,8 @@
 use crate::config::get_config;
-use rustfm_scrobble::{Scrobble, Scrobbler};
+use rustfm_scrobble::{
+    responses::{NowPlayingResponse, ScrobbleResponse},
+    Scrobble, Scrobbler, ScrobblerError,
+};
 
 pub struct LastfmScrobbler {
     scrobbler: Scrobbler,
@@ -8,7 +11,6 @@ pub struct LastfmScrobbler {
 impl LastfmScrobbler {
     pub fn new() -> Self {
         let config = get_config();
-
         let mut scrobbler = Scrobbler::new(&config.last_fm.api_key, &config.last_fm.api_secret);
 
         if let Err(err) =
@@ -23,25 +25,23 @@ impl LastfmScrobbler {
         LastfmScrobbler { scrobbler }
     }
 
-    pub fn set_now_playing(&self, title: &str, artist: &str, album: &str) {
-        let song = Scrobble::new(artist, title, album);
-
-        if let Err(err) = self.scrobbler.now_playing(&song) {
-            println!(
-                "An error occurred while trying to set Last.fm now playing: {}",
-                err
-            );
-        };
+    pub fn set_now_playing(
+        &self,
+        title: &str,
+        artist: &str,
+        album: &str,
+    ) -> Result<NowPlayingResponse, ScrobblerError> {
+        self.scrobbler
+            .now_playing(&Scrobble::new(artist, title, album))
     }
 
-    pub fn scrobble(&self, title: &str, artist: &str, album: &str) {
-        let song = Scrobble::new(artist, title, album);
-
-        if let Err(err) = self.scrobbler.scrobble(&song) {
-            println!(
-                "An error occurred while trying to scrobble in Last.fm: {}",
-                err
-            );
-        };
+    pub fn scrobble(
+        &self,
+        title: &str,
+        artist: &str,
+        album: &str,
+    ) -> Result<ScrobbleResponse, ScrobblerError> {
+        self.scrobbler
+            .scrobble(&Scrobble::new(artist, title, album))
     }
 }
