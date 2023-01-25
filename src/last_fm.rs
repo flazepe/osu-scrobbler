@@ -27,7 +27,7 @@ impl LastfmScrobbler {
         let song = Scrobble::new(artist, title, album);
 
         if let Err(err) = self.scrobbler.now_playing(&song) {
-            panic!(
+            println!(
                 "An error occurred while trying to set Last.fm now playing: {}",
                 err
             );
@@ -38,7 +38,7 @@ impl LastfmScrobbler {
         let song = Scrobble::new(artist, title, album);
 
         if let Err(err) = self.scrobbler.scrobble(&song) {
-            panic!(
+            println!(
                 "An error occurred while trying to scrobble in Last.fm: {}",
                 err
             );
