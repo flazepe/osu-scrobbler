@@ -5,7 +5,6 @@ use urlencoding::encode;
 use crate::osu::OsuWindowDetails;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Beatmapset {
     pub artist: String,
     pub artist_unicode: String,
