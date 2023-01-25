@@ -1,3 +1,4 @@
+use crate::config::get_config;
 use crate::last_fm::scrobble;
 use crate::nerinyan::Beatmapset;
 use crate::osu::OsuWindowDetails;
@@ -31,11 +32,25 @@ impl OsuScrobble {
         if OsuScrobble::get_current_timestamp() >= self.end_timestamp {
             println!("Scrobbled!");
 
+            let config = get_config();
+
             scrobble(
                 &scrobbler,
-                &self.beatmapset.title_unicode,
-                &self.beatmapset.artist_unicode,
-                &self.beatmapset.title_unicode,
+                if config.options.use_original_metadata {
+                    &self.beatmapset.title_unicode
+                } else {
+                    &self.beatmapset.title
+                },
+                if config.options.use_original_metadata {
+                    &self.beatmapset.artist_unicode
+                } else {
+                    &self.beatmapset.artist
+                },
+                if config.options.use_original_metadata {
+                    &self.beatmapset.title_unicode
+                } else {
+                    &self.beatmapset.title
+                },
             );
         } else {
             println!("Not scrobbled");
