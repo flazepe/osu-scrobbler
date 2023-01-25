@@ -26,18 +26,12 @@ pub struct LastfmConfig {
 pub fn get_config() -> Config {
     let contents = match fs::read_to_string("config.toml") {
         Ok(c) => c,
-        Err(_) => {
-            eprintln!("No config file found!");
-            exit(1);
-        }
+        Err(_) => panic!("No config file found!"),
     };
 
     let config: Config = match toml::from_str(&contents) {
         Ok(c) => c,
-        Err(err) => {
-            eprintln!("An error occurred while reading config: {:?}", err);
-            exit(1);
-        }
+        Err(err) => panic!("An error occurred while reading config: {:?}", err),
     };
 
     config

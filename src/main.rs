@@ -54,7 +54,7 @@ async fn check_loop(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Op
                     }
                 } else {
                     osu_scrobble = None;
-                    println!("Could not find {} in mirror!", window_details.raw_title);
+                    println!("Could not find {} in mirror.", window_details.raw_title);
                 }
             }
         }
@@ -77,6 +77,6 @@ async fn check_loop(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Op
 
 #[main]
 async fn main() {
-    println!("Started loop!");
+    println!("Looping...");
     check_loop(&last_fm::get_scrobbler(), None).await;
 }

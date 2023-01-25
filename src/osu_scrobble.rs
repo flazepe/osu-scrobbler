@@ -53,7 +53,7 @@ impl OsuScrobble {
                 },
             );
         } else {
-            println!("Not scrobbled");
+            println!("Not scrobbled.");
         }
     }
 }
