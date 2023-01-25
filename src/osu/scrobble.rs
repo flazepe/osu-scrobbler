@@ -22,7 +22,7 @@ impl OsuScrobble {
         /*
         let config = get_config();
 
-        scrobbler.set_now_playing(
+        match scrobbler.set_now_playing(
             if config.options.use_original_metadata {
                 &beatmapset.title_unicode
             } else {
@@ -38,11 +38,17 @@ impl OsuScrobble {
             } else {
                 &beatmapset.title
             },
-        );
+        ) {
+            Ok(_) => (),
+            Err(err) => println!(
+                "An error occurred while trying to set Last.fm now playing: {}",
+                err
+            ),
+        }
         */
 
         Self {
-            scrobbler: scrobbler,
+            scrobbler,
             window_details: window_details.to_owned(),
             beatmapset: beatmapset.to_owned(),
             end_timestamps: vec![timestamp + (beatmapset.length / 2), timestamp + 240],
@@ -53,11 +59,9 @@ impl OsuScrobble {
         let timestamp = get_current_timestamp();
 
         if timestamp >= self.end_timestamps[0] || timestamp >= self.end_timestamps[1] {
-            println!("Scrobbled ^");
-
             let config = get_config();
 
-            self.scrobbler.scrobble(
+            match self.scrobbler.scrobble(
                 if config.options.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
@@ -73,7 +77,13 @@ impl OsuScrobble {
                 } else {
                     &self.beatmapset.title
                 },
-            );
+            ) {
+                Ok(_) => println!("^ Scrobbled"),
+                Err(err) => println!(
+                    "An error occurred while trying to scrobble in Last.fm: {}",
+                    err
+                ),
+            };
         } else {
             println!("Not scrobbled ^");
         }
