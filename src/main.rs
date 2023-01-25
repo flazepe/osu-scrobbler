@@ -20,7 +20,7 @@ async fn check_loop(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Op
                 || &osu_scrobble.as_ref().unwrap().window_details.title != &window_details.title
             {
                 if let Some(beatmapset) = nerinyan::get_beatmapset(&window_details).await {
-                    if beatmapset.length >= config.options.min_length_seconds {
+                    if beatmapset.length >= config.options.min_beatmap_length_seconds {
                         osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
                         // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.

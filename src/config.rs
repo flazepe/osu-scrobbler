@@ -12,7 +12,7 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct OptionsConfig {
     pub use_original_metadata: bool,
-    pub min_length_seconds: u64,
+    pub min_beatmap_length_seconds: u64,
 }
 
 #[derive(Debug, Deserialize)]
