@@ -1,3 +1,3 @@
 # osu-scrobbler
 
-An osu! Last.fm scrobbler (that only updates now playing status for now...)
+An osu! Last.fm scrobbler. Works for most ranked beatmaps.
