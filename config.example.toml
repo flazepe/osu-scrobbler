@@ -1,6 +1,6 @@
 [options]
 use_original_metadata = true
-min_length_seconds = 60
+min_beatmap_length_seconds = 60
 
 [last_fm]
 username = "hello"
