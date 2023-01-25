@@ -23,6 +23,8 @@ async fn check_loop(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Op
                     if beatmapset.length >= config.options.min_length_seconds {
                         osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
+                        // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.
+                        /*
                         last_fm::set_now_playing(
                             &scrobbler,
                             if config.options.use_original_metadata {
@@ -41,6 +43,7 @@ async fn check_loop(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Op
                                 &beatmapset.title
                             },
                         );
+                        */
 
                         println!(
                             "Now playing: {}!",
