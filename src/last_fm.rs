@@ -11,7 +11,7 @@ pub fn get_scrobbler() -> Scrobbler {
         scrobbler.authenticate_with_password(&config.last_fm.username, &config.last_fm.password)
     {
         panic!(
-            "An error occurred while trying to authenticate to Last.fm: {:?}",
+            "An error occurred while trying to authenticate to Last.fm: {}",
             err
         );
     };
@@ -24,7 +24,7 @@ pub fn set_now_playing(scrobbler: &Scrobbler, title: &str, artist: &str, album: 
 
     if let Err(err) = scrobbler.now_playing(&song) {
         panic!(
-            "An error occurred while trying to set Last.fm now playing: {:?}",
+            "An error occurred while trying to set Last.fm now playing: {}",
             err
         );
     };
@@ -35,7 +35,7 @@ pub fn scrobble(scrobbler: &Scrobbler, title: &str, artist: &str, album: &str) {
 
     if let Err(err) = scrobbler.scrobble(&song) {
         panic!(
-            "An error occurred while trying to scrobble in Last.fm: {:?}",
+            "An error occurred while trying to scrobble in Last.fm: {}",
             err
         );
     };

@@ -31,7 +31,7 @@ pub fn get_config() -> Config {
 
     let config: Config = match toml::from_str(&contents) {
         Ok(c) => c,
-        Err(err) => panic!("An error occurred while reading config: {:?}", err),
+        Err(err) => panic!("An error occurred while reading config: {}", err),
     };
 
     config
