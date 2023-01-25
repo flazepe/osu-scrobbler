@@ -1,8 +1,7 @@
+use crate::osu::OsuWindowDetails;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
-
-use crate::osu::OsuWindowDetails;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Beatmapset {

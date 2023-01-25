@@ -1,5 +1,4 @@
 use crate::config::get_config;
-
 use rustfm_scrobble::{Scrobble, Scrobbler};
 
 pub fn get_scrobbler() -> Scrobbler {
