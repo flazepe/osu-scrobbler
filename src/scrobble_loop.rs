@@ -1,4 +1,5 @@
 use crate::config::get_config;
+use crate::last_fm::LastfmScrobbler;
 use crate::osu::nerinyan::get_beatmapset;
 use crate::osu::scrobble::OsuScrobble;
 use crate::osu::window::get_osu_window_details;
@@ -7,7 +8,7 @@ use std::time::Duration;
 use tokio::time;
 
 #[async_recursion]
-pub async fn main(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Option<OsuScrobble>) {
+pub async fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrobble>) {
     let config = get_config();
 
     match get_osu_window_details() {
@@ -21,8 +22,7 @@ pub async fn main(scrobbler: &rustfm_scrobble::Scrobbler, mut osu_scrobble: Opti
 
                         // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.
                         /*
-                        last_fm::set_now_playing(
-                            &scrobbler,
+                        scrobbler.set_now_playing(
                             if config.options.use_original_metadata {
                                 &beatmapset.title_unicode
                             } else {

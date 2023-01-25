@@ -1,8 +1,7 @@
 use crate::config::get_config;
-use crate::last_fm::scrobble;
+use crate::last_fm::LastfmScrobbler;
 use crate::osu::nerinyan::Beatmapset;
 use crate::osu::window::OsuWindowDetails;
-use rustfm_scrobble::Scrobbler;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
@@ -30,7 +29,7 @@ impl OsuScrobble {
             .as_secs()
     }
 
-    pub fn end(&self, scrobbler: &Scrobbler) {
+    pub fn end(&self, scrobbler: &LastfmScrobbler) {
         let timestamp = OsuScrobble::get_current_timestamp();
 
         if self
@@ -43,8 +42,7 @@ impl OsuScrobble {
 
             let config = get_config();
 
-            scrobble(
-                &scrobbler,
+            scrobbler.scrobble(
                 if config.options.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
