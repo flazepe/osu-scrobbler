@@ -1,7 +1,7 @@
 use crate::config::get_config;
 use crate::last_fm::scrobble;
-use crate::nerinyan::Beatmapset;
-use crate::osu::OsuWindowDetails;
+use crate::osu::nerinyan::Beatmapset;
+use crate::osu::window::OsuWindowDetails;
 use rustfm_scrobble::Scrobbler;
 use std::time::{SystemTime, UNIX_EPOCH};
 

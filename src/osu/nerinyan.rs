@@ -1,4 +1,4 @@
-use crate::osu::OsuWindowDetails;
+use crate::osu::window::OsuWindowDetails;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;

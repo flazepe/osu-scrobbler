@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use std::fs;
-use std::process::exit;
 use toml;
 
 #[derive(Debug, Deserialize)]
