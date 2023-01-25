@@ -1,4 +1,5 @@
 use crate::osu::window::OsuWindowDetails;
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
@@ -12,17 +13,15 @@ pub struct Beatmapset {
     pub length: u64,
 }
 
-pub async fn get_beatmapset(details: &OsuWindowDetails) -> Option<Beatmapset> {
-    let json: Vec<Value> = reqwest::Client::new()
+pub fn get_beatmapset(details: &OsuWindowDetails) -> Option<Beatmapset> {
+    let json: Vec<Value> = Client::new()
         .get(
             "https://api.nerinyan.moe/search?q=".to_string()
                 + &encode((details.artist.to_owned() + " - " + &details.title).as_str()),
         )
         .send()
-        .await
         .unwrap()
         .json()
-        .await
         .unwrap();
 
     for beatmapset in json {

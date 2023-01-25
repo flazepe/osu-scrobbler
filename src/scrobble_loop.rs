@@ -3,12 +3,16 @@ use crate::{
     last_fm::LastfmScrobbler,
     osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_osu_window_details},
 };
-use async_recursion::async_recursion;
-use std::time::Duration;
-use tokio::time;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-#[async_recursion]
-pub async fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrobble>) {
+pub fn get_current_timestamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
+pub fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrobble>) {
     let config = get_config();
 
     match get_osu_window_details() {
@@ -16,7 +20,7 @@ pub async fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrob
             if osu_scrobble.is_none()
                 || &osu_scrobble.as_ref().unwrap().window_details.title != &window_details.title
             {
-                if let Some(beatmapset) = get_beatmapset(&window_details).await {
+                if let Some(beatmapset) = get_beatmapset(&window_details) {
                     if beatmapset.length >= config.options.min_beatmap_length_seconds {
                         osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
@@ -62,10 +66,8 @@ pub async fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrob
         }
     }
 
-    let mut interval = time::interval(Duration::from_millis(5000));
+    let timestamp = get_current_timestamp() + 5;
+    while get_current_timestamp() < timestamp {}
 
-    interval.tick().await;
-    interval.tick().await;
-
-    main(scrobbler, osu_scrobble).await
+    main(scrobbler, osu_scrobble)
 }

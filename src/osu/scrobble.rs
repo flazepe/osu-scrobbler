@@ -1,7 +1,7 @@
 use crate::config::get_config;
 use crate::last_fm::LastfmScrobbler;
 use crate::osu::{nerinyan::Beatmapset, window::OsuWindowDetails};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::scrobble_loop::get_current_timestamp;
 
 #[derive(Clone, Debug)]
 pub struct OsuScrobble {
@@ -12,7 +12,7 @@ pub struct OsuScrobble {
 
 impl OsuScrobble {
     pub fn new(window_details: &OsuWindowDetails, beatmapset: &Beatmapset) -> Self {
-        let timestamp = OsuScrobble::get_current_timestamp();
+        let timestamp = get_current_timestamp();
 
         Self {
             window_details: window_details.to_owned(),
@@ -21,15 +21,8 @@ impl OsuScrobble {
         }
     }
 
-    pub fn get_current_timestamp() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-    }
-
     pub fn end(&self, scrobbler: &LastfmScrobbler) {
-        let timestamp = OsuScrobble::get_current_timestamp();
+        let timestamp = get_current_timestamp();
 
         if self
             .to_owned()

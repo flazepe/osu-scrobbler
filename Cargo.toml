@@ -4,12 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-recursion = "1"
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
 rustfm-scrobble = "1"
 serde = "1"
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
 toml = "0.6"
 urlencoding = "2"
 window_titles = { git = "https://github.com/HiruNya/window_titles" }
