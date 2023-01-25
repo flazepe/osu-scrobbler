@@ -41,10 +41,7 @@ pub async fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrob
                         );
                         */
 
-                        println!(
-                            "Now playing: {}!",
-                            osu_scrobble.as_ref().unwrap().window_details.raw_title
-                        );
+                        println!("Now playing: {}", window_details.raw_title);
                     } else {
                         osu_scrobble = None;
                     }
@@ -59,7 +56,9 @@ pub async fn main(scrobbler: &LastfmScrobbler, mut osu_scrobble: Option<OsuScrob
                 osu_scrobble.end(&scrobbler);
             }
 
-            osu_scrobble = None;
+            if osu_scrobble.is_some() {
+                osu_scrobble = None;
+            }
         }
     }
 

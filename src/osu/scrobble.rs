@@ -37,7 +37,7 @@ impl OsuScrobble {
             .into_iter()
             .any(|end_timestamp| timestamp >= end_timestamp)
         {
-            println!("Scrobbled!");
+            println!("Scrobbled ^");
 
             let config = get_config();
 
@@ -59,7 +59,7 @@ impl OsuScrobble {
                 },
             );
         } else {
-            println!("Not scrobbled.");
+            println!("Not scrobbled ^");
         }
     }
 }
