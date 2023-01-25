@@ -3,12 +3,24 @@ use std::fs;
 use std::process::exit;
 use toml;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Config {
-    pub last_fm_username: String,
-    pub last_fm_password: String,
-    pub last_fm_api_key: String,
-    pub last_fm_api_secret: String,
+    pub options: OptionsConfig,
+    pub last_fm: LastfmConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OptionsConfig {
+    pub use_original_metadata: bool,
+    pub min_length_seconds: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LastfmConfig {
+    pub username: String,
+    pub password: String,
+    pub api_key: String,
+    pub api_secret: String,
 }
 
 pub fn get_config() -> Config {
