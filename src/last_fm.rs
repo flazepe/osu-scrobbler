@@ -22,7 +22,7 @@ impl LastfmScrobbler {
             );
         };
 
-        LastfmScrobbler { scrobbler }
+        Self { scrobbler }
     }
 
     pub fn set_now_playing(
