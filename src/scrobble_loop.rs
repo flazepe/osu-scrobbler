@@ -1,5 +1,5 @@
 use crate::{
-    config::get_config,
+    config::{get_config, ScrobbleConfig},
     last_fm::LastfmScrobbler,
     osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_osu_window_details},
 };
@@ -12,26 +12,28 @@ pub fn get_current_timestamp() -> u64 {
         .as_secs()
 }
 
-fn check(scrobbler: &LastfmScrobbler, osu_scrobble: &mut Option<OsuScrobble>) {
-    let config = get_config();
-
+fn check(
+    scrobble_config: &ScrobbleConfig,
+    scrobbler: &LastfmScrobbler,
+    osu_scrobble: &mut Option<OsuScrobble>,
+) {
     match get_osu_window_details() {
         Some(window_details) => {
             if osu_scrobble.is_none()
                 || osu_scrobble.as_ref().unwrap().window_details.title != window_details.title
             {
                 if let Some(beatmapset) = get_beatmapset(&window_details) {
-                    if beatmapset.length >= config.scrobble.min_beatmap_length_seconds {
+                    if beatmapset.length >= scrobble_config.min_beatmap_length_seconds {
                         *osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
                         println!(
                             "Playing: {} - {}",
-                            if config.scrobble.use_original_metadata {
+                            if scrobble_config.use_original_metadata {
                                 &beatmapset.artist_unicode
                             } else {
                                 &beatmapset.artist
                             },
-                            if config.scrobble.use_original_metadata {
+                            if scrobble_config.use_original_metadata {
                                 &beatmapset.title_unicode
                             } else {
                                 &beatmapset.title
@@ -48,7 +50,7 @@ fn check(scrobbler: &LastfmScrobbler, osu_scrobble: &mut Option<OsuScrobble>) {
         }
         None => {
             if let Some(osu_scrobble) = osu_scrobble {
-                osu_scrobble.end(&scrobbler);
+                osu_scrobble.end(scrobble_config, scrobbler);
             }
 
             *osu_scrobble = None;
@@ -69,7 +71,7 @@ pub fn main() {
     let mut osu_scrobble = None;
 
     loop {
-        check(&scrobbler, &mut osu_scrobble);
+        check(&config.scrobble, &scrobbler, &mut osu_scrobble);
         let timestamp = get_current_timestamp() + 5;
         while get_current_timestamp() < timestamp {}
     }

@@ -1,4 +1,4 @@
-use crate::config::get_config;
+use crate::config::ScrobbleConfig;
 use crate::last_fm::LastfmScrobbler;
 use crate::osu::{nerinyan::Beatmapset, window::OsuWindowDetails};
 use crate::scrobble_loop::get_current_timestamp;
@@ -15,20 +15,18 @@ impl OsuScrobble {
 
         // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.
         /*
-        let config = get_config();
-
         match scrobbler.set_now_playing(
-            if config.scrobble.use_original_metadata {
+            if config.use_original_metadata {
                 &beatmapset.title_unicode
             } else {
                 &beatmapset.title
             },
-            if config.scrobble.use_original_metadata {
+            if config.use_original_metadata {
                 &beatmapset.artist_unicode
             } else {
                 &beatmapset.artist
             },
-            if config.scrobble.use_original_metadata {
+            if config.use_original_metadata {
                 &beatmapset.title_unicode
             } else {
                 &beatmapset.title
@@ -49,24 +47,22 @@ impl OsuScrobble {
         }
     }
 
-    pub fn end(&self, scrobbler: &LastfmScrobbler) {
+    pub fn end(&self, config: &ScrobbleConfig, scrobbler: &LastfmScrobbler) {
         let timestamp = get_current_timestamp();
 
         if timestamp >= self.end_timestamps[0] || timestamp >= self.end_timestamps[1] {
-            let config = get_config();
-
             match scrobbler.scrobble(
-                if config.scrobble.use_original_metadata {
+                if config.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
                     &self.beatmapset.title
                 },
-                if config.scrobble.use_original_metadata {
+                if config.use_original_metadata {
                     &self.beatmapset.artist_unicode
                 } else {
                     &self.beatmapset.artist
                 },
-                if config.scrobble.use_original_metadata {
+                if config.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
                     &self.beatmapset.title
