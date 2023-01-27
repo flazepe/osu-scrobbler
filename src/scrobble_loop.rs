@@ -28,7 +28,19 @@ fn check(osu_scrobble: &mut Option<OsuScrobble>) {
                             &beatmapset,
                         ));
 
-                        println!("Now playing: {}", window_details.raw_title);
+                        println!(
+                            "Playing: {} - {}",
+                            if config.options.use_original_metadata {
+                                &beatmapset.artist_unicode
+                            } else {
+                                &beatmapset.artist
+                            },
+                            if config.options.use_original_metadata {
+                                &beatmapset.title_unicode
+                            } else {
+                                &beatmapset.title
+                            }
+                        );
                     } else {
                         *osu_scrobble = None;
                     }

@@ -6,6 +6,6 @@ mod scrobble_loop;
 use scrobble_loop::main as scrobble_loop;
 
 fn main() {
-    println!("Looping...");
+    println!("Started scrobbler!");
     scrobble_loop();
 }

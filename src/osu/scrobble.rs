@@ -78,7 +78,7 @@ impl OsuScrobble {
                     &self.beatmapset.title
                 },
             ) {
-                Ok(_) => println!("^ Scrobbled"),
+                Ok(_) => println!("Scrobbled ^"),
                 Err(err) => println!(
                     "An error occurred while trying to scrobble in Last.fm: {}",
                     err
