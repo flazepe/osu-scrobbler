@@ -1,4 +1,3 @@
-use crate::config::get_config;
 use rustfm_scrobble::{
     responses::{NowPlayingResponse, ScrobbleResponse},
     Scrobble, Scrobbler, ScrobblerError,
@@ -9,17 +8,15 @@ pub struct LastfmScrobbler {
 }
 
 impl LastfmScrobbler {
-    pub fn new() -> Self {
-        let config = get_config();
-        let mut scrobbler = Scrobbler::new(&config.last_fm.api_key, &config.last_fm.api_secret);
+    pub fn new(username: &str, password: &str, api_key: &str, api_secret: &str) -> Self {
+        let mut scrobbler = Scrobbler::new(api_key, api_secret);
 
-        if let Err(err) =
-            scrobbler.authenticate_with_password(&config.last_fm.username, &config.last_fm.password)
-        {
-            panic!(
+        match scrobbler.authenticate_with_password(username, password) {
+            Ok(_) => println!("Authenticated with Last.fm."),
+            Err(err) => panic!(
                 "An error occurred while trying to authenticate to Last.fm: {}",
                 err
-            );
+            ),
         };
 
         Self { scrobbler }

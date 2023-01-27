@@ -12,7 +12,7 @@ pub fn get_current_timestamp() -> u64 {
         .as_secs()
 }
 
-fn check(osu_scrobble: &mut Option<OsuScrobble>) {
+fn check(scrobbler: &LastfmScrobbler, osu_scrobble: &mut Option<OsuScrobble>) {
     let config = get_config();
 
     match get_osu_window_details() {
@@ -22,11 +22,7 @@ fn check(osu_scrobble: &mut Option<OsuScrobble>) {
             {
                 if let Some(beatmapset) = get_beatmapset(&window_details) {
                     if beatmapset.length >= config.options.min_beatmap_length_seconds {
-                        *osu_scrobble = Some(OsuScrobble::new(
-                            LastfmScrobbler::new(),
-                            &window_details,
-                            &beatmapset,
-                        ));
+                        *osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
                         println!(
                             "Playing: {} - {}",
@@ -52,7 +48,7 @@ fn check(osu_scrobble: &mut Option<OsuScrobble>) {
         }
         None => {
             if let Some(osu_scrobble) = osu_scrobble {
-                osu_scrobble.end();
+                osu_scrobble.end(&scrobbler);
             }
 
             *osu_scrobble = None;
@@ -61,10 +57,19 @@ fn check(osu_scrobble: &mut Option<OsuScrobble>) {
 }
 
 pub fn main() {
+    let config = get_config();
+
+    let scrobbler = LastfmScrobbler::new(
+        &config.last_fm.username,
+        &config.last_fm.password,
+        &config.last_fm.api_key,
+        &config.last_fm.api_secret,
+    );
+
     let mut osu_scrobble = None;
 
     loop {
-        check(&mut osu_scrobble);
+        check(&scrobbler, &mut osu_scrobble);
         let timestamp = get_current_timestamp() + 5;
         while get_current_timestamp() < timestamp {}
     }

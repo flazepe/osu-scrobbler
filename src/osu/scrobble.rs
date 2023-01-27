@@ -4,18 +4,13 @@ use crate::osu::{nerinyan::Beatmapset, window::OsuWindowDetails};
 use crate::scrobble_loop::get_current_timestamp;
 
 pub struct OsuScrobble {
-    scrobbler: LastfmScrobbler,
     pub window_details: OsuWindowDetails,
     pub beatmapset: Beatmapset,
     end_timestamps: Vec<u64>,
 }
 
 impl OsuScrobble {
-    pub fn new(
-        scrobbler: LastfmScrobbler,
-        window_details: &OsuWindowDetails,
-        beatmapset: &Beatmapset,
-    ) -> Self {
+    pub fn new(window_details: &OsuWindowDetails, beatmapset: &Beatmapset) -> Self {
         let timestamp = get_current_timestamp();
 
         // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.
@@ -48,20 +43,19 @@ impl OsuScrobble {
         */
 
         Self {
-            scrobbler,
             window_details: window_details.to_owned(),
             beatmapset: beatmapset.to_owned(),
             end_timestamps: vec![timestamp + (beatmapset.length / 2), timestamp + 240],
         }
     }
 
-    pub fn end(&self) {
+    pub fn end(&self, scrobbler: &LastfmScrobbler) {
         let timestamp = get_current_timestamp();
 
         if timestamp >= self.end_timestamps[0] || timestamp >= self.end_timestamps[1] {
             let config = get_config();
 
-            match self.scrobbler.scrobble(
+            match scrobbler.scrobble(
                 if config.options.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
