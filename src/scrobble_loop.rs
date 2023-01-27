@@ -19,9 +19,7 @@ fn check(
 ) {
     match get_osu_window_details() {
         Some(window_details) => {
-            if osu_scrobble.is_none()
-                || osu_scrobble.as_ref().unwrap().window_details.title != window_details.title
-            {
+            if osu_scrobble.is_none() {
                 if let Some(beatmapset) = get_beatmapset(&window_details) {
                     if beatmapset.length >= scrobble_config.min_beatmap_length_seconds {
                         *osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
@@ -39,12 +37,7 @@ fn check(
                                 &beatmapset.title
                             }
                         );
-                    } else {
-                        *osu_scrobble = None;
                     }
-                } else {
-                    *osu_scrobble = None;
-                    println!("Could not find {} in mirror.", window_details.raw_title);
                 }
             }
         }
