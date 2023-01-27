@@ -18,17 +18,17 @@ impl OsuScrobble {
         let config = get_config();
 
         match scrobbler.set_now_playing(
-            if config.options.use_original_metadata {
+            if config.scrobble.use_original_metadata {
                 &beatmapset.title_unicode
             } else {
                 &beatmapset.title
             },
-            if config.options.use_original_metadata {
+            if config.scrobble.use_original_metadata {
                 &beatmapset.artist_unicode
             } else {
                 &beatmapset.artist
             },
-            if config.options.use_original_metadata {
+            if config.scrobble.use_original_metadata {
                 &beatmapset.title_unicode
             } else {
                 &beatmapset.title
@@ -56,17 +56,17 @@ impl OsuScrobble {
             let config = get_config();
 
             match scrobbler.scrobble(
-                if config.options.use_original_metadata {
+                if config.scrobble.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
                     &self.beatmapset.title
                 },
-                if config.options.use_original_metadata {
+                if config.scrobble.use_original_metadata {
                     &self.beatmapset.artist_unicode
                 } else {
                     &self.beatmapset.artist
                 },
-                if config.options.use_original_metadata {
+                if config.scrobble.use_original_metadata {
                     &self.beatmapset.title_unicode
                 } else {
                     &self.beatmapset.title

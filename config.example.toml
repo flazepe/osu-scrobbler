@@ -1,4 +1,4 @@
-[options]
+[scrobble]
 use_original_metadata = true
 min_beatmap_length_seconds = 60
 

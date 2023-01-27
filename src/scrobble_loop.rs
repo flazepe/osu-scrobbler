@@ -21,17 +21,17 @@ fn check(scrobbler: &LastfmScrobbler, osu_scrobble: &mut Option<OsuScrobble>) {
                 || osu_scrobble.as_ref().unwrap().window_details.title != window_details.title
             {
                 if let Some(beatmapset) = get_beatmapset(&window_details) {
-                    if beatmapset.length >= config.options.min_beatmap_length_seconds {
+                    if beatmapset.length >= config.scrobble.min_beatmap_length_seconds {
                         *osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
                         println!(
                             "Playing: {} - {}",
-                            if config.options.use_original_metadata {
+                            if config.scrobble.use_original_metadata {
                                 &beatmapset.artist_unicode
                             } else {
                                 &beatmapset.artist
                             },
-                            if config.options.use_original_metadata {
+                            if config.scrobble.use_original_metadata {
                                 &beatmapset.title_unicode
                             } else {
                                 &beatmapset.title

@@ -4,12 +4,12 @@ use toml;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    pub options: OptionsConfig,
+    pub scrobble: ScrobbleConfig,
     pub last_fm: LastfmConfig,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct OptionsConfig {
+pub struct ScrobbleConfig {
     pub use_original_metadata: bool,
     pub min_beatmap_length_seconds: u64,
 }
