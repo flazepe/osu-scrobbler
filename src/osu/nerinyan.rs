@@ -29,7 +29,20 @@ pub fn get_beatmapset(window_title: &str) -> Option<Beatmapset> {
                 let artist = beatmapset["artist"].as_str().unwrap();
                 let artist_unicode = beatmapset["artist_unicode"].as_str().unwrap();
 
-                let difficulty = beatmap["version"].as_str().unwrap();
+                let mut difficulty = beatmap["version"].as_str().unwrap().to_owned();
+
+                // Mania difficulty names are prefixed with [nK] on the mirror
+                if difficulty.starts_with("[") && difficulty.contains("K] ") {
+                    difficulty = difficulty
+                        .to_owned()
+                        .chars()
+                        .skip(if difficulty.starts_with("[10K]") {
+                            6
+                        } else {
+                            5
+                        })
+                        .collect();
+                }
 
                 if format!("{} - {} [{}]", artist, title, difficulty) == window_title
                     || format!("{} - {} [{}]", artist_unicode, title_unicode, difficulty)
