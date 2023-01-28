@@ -1,7 +1,7 @@
 use crate::{
     config::{get_config, ScrobbleConfig},
     last_fm::LastfmScrobbler,
-    osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_window_details},
+    osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_window_title},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -17,12 +17,12 @@ fn check(
     scrobbler: &LastfmScrobbler,
     osu_scrobble: &mut Option<OsuScrobble>,
 ) {
-    match get_window_details() {
-        Some(window_details) => {
+    match get_window_title() {
+        Some(window_title) => {
             if osu_scrobble.is_none() {
-                if let Some(beatmapset) = get_beatmapset(&window_details) {
+                if let Some(beatmapset) = get_beatmapset(&window_title) {
                     if beatmapset.length >= config.min_beatmap_length_seconds {
-                        *osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
+                        *osu_scrobble = Some(OsuScrobble::new(&beatmapset));
 
                         println!(
                             "Playing: {} - {}",
