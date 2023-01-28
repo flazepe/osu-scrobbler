@@ -1,6 +1,6 @@
 use serde::Deserialize;
-use std::fs;
-use toml;
+use std::fs::read_to_string;
+use toml::from_str;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -23,15 +23,11 @@ pub struct LastfmConfig {
 }
 
 pub fn get_config() -> Config {
-    let contents = match fs::read_to_string("config.toml") {
-        Ok(c) => c,
+    match from_str(&match read_to_string("config.toml") {
+        Ok(contents) => contents,
         Err(_) => panic!("No config file found!"),
-    };
-
-    let config: Config = match toml::from_str(&contents) {
-        Ok(c) => c,
+    }) {
+        Ok(config) => config,
         Err(err) => panic!("An error occurred while reading config: {}", err),
-    };
-
-    config
+    }
 }

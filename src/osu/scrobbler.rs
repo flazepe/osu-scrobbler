@@ -103,7 +103,7 @@ impl Scrobbler {
         ) {
             Ok(_) => (),
             Err(err) => println!(
-                "An error occurred while trying to set Last.fm now playing: {}",
+                "An error occurred while setting Last.fm now playing: {}",
                 err
             ),
         }
@@ -135,10 +135,7 @@ impl Scrobbler {
                     },
                 ) {
                     Ok(_) => println!("Scrobbled ^"),
-                    Err(err) => println!(
-                        "An error occurred while trying to scrobble in Last.fm: {}",
-                        err
-                    ),
+                    Err(err) => println!("An error occurred while scrobbling to Last.fm: {}", err),
                 };
             } else {
                 println!("Not scrobbled ^");

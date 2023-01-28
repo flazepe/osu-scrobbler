@@ -13,10 +13,7 @@ impl Scrobbler {
 
         match scrobbler.authenticate_with_password(username, password) {
             Ok(_) => println!("Authenticated with Last.fm."),
-            Err(err) => panic!(
-                "An error occurred while trying to authenticate to Last.fm: {}",
-                err
-            ),
+            Err(err) => panic!("An error occurred while authenticating to Last.fm: {}", err),
         };
 
         Self { scrobbler }
