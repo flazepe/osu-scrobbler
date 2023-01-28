@@ -65,7 +65,7 @@ pub fn start() {
 
     loop {
         check(&config.scrobble, &scrobbler, &mut osu_scrobble);
-        let timestamp = get_current_timestamp() + 5;
+        let timestamp = get_current_timestamp() + 1;
         while get_current_timestamp() < timestamp {}
     }
 }
