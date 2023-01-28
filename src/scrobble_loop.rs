@@ -21,7 +21,7 @@ fn check(
         Some(window_title) => {
             if osu_scrobble.is_none() {
                 if let Some(beatmapset) = get_beatmapset(&window_title) {
-                    if beatmapset.length >= config.min_beatmap_length_seconds {
+                    if beatmapset.length >= config.min_beatmap_length_secs {
                         *osu_scrobble = Some(OsuScrobble::new(&beatmapset));
 
                         println!(
