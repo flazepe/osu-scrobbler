@@ -1,6 +1,6 @@
 # osu-scrobbler
 
-An osu! Last.fm scrobbler. Works for most ranked beatmaps.
+An osu! Last.fm scrobbler. This scrobbler only works for gameplay!
 
 ## Setup
 
@@ -11,5 +11,5 @@ An osu! Last.fm scrobbler. Works for most ranked beatmaps.
 
 ## Caveats
 
--   Since the scrobbler heavily relies on osu!'s window title, a scrobble will still count if you pause or stay on the fail screen for long enough.
+-   Since this scrobbler heavily relies on osu!'s window title, a scrobble will still count if you pause or stay on the fail screen for long enough.
 -   This scrobbler relies on the beatmap you're playing to be on the [Nerinyan](https://nerinyan.moe/) mirror. If the beatmap isn't on the mirror, your play won't be scrobbled. This shouldn't be a problem in most cases.
