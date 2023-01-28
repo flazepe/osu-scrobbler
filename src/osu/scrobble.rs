@@ -46,7 +46,7 @@ impl OsuScrobble {
     pub fn end(&self, config: &ScrobbleConfig, scrobbler: &LastfmScrobbler) {
         let timestamp = get_current_timestamp();
 
-        if timestamp >= self.timestamp + (self.beatmapset.length / 2)
+        if timestamp >= self.timestamp + (u64::from(self.beatmapset.length) / 2)
             || timestamp >= self.timestamp + 240
         {
             match scrobbler.scrobble(

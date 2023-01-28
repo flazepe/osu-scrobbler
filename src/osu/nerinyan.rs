@@ -9,7 +9,7 @@ pub struct Beatmapset {
     pub artist_unicode: String,
     pub title: String,
     pub title_unicode: String,
-    pub length: u64,
+    pub length: u32,
 }
 
 pub fn get_beatmapset(window_title: &str) -> Option<Beatmapset> {
@@ -41,7 +41,7 @@ pub fn get_beatmapset(window_title: &str) -> Option<Beatmapset> {
                         artist_unicode: artist_unicode.to_owned(),
                         title: title.to_owned(),
                         title_unicode: title_unicode.to_owned(),
-                        length: beatmap["total_length"].as_u64().unwrap(),
+                        length: beatmap["total_length"].to_string().parse::<u32>().unwrap(),
                     });
                 }
             }

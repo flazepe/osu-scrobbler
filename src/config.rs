@@ -11,7 +11,7 @@ pub struct Config {
 #[derive(Clone, Debug, Deserialize)]
 pub struct ScrobbleConfig {
     pub use_original_metadata: bool,
-    pub min_beatmap_length_seconds: u64,
+    pub min_beatmap_length_seconds: u32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
