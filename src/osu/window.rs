@@ -20,7 +20,7 @@ fn get_last_index(string: &str, target_char: &char) -> usize {
     last_index
 }
 
-fn get_osu_window_title() -> Option<String> {
+fn get_window_title() -> Option<String> {
     for title in Connection::new().unwrap().window_titles().unwrap() {
         if title.starts_with("osu!") && title.contains(['-', ']']) {
             return Some(title.chars().skip(8).collect());
@@ -30,8 +30,8 @@ fn get_osu_window_title() -> Option<String> {
     None
 }
 
-pub fn get_osu_window_details() -> Option<OsuWindowDetails> {
-    if let Some(title) = get_osu_window_title() {
+pub fn get_window_details() -> Option<OsuWindowDetails> {
+    if let Some(title) = get_window_title() {
         let beatmap_index = get_last_index(&title, &'[') - 1;
         let beatmap: String = title.chars().skip(beatmap_index + 2).collect();
         let artist_separator_index = title.find(" - ").unwrap();

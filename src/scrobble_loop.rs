@@ -1,7 +1,7 @@
 use crate::{
     config::{get_config, ScrobbleConfig},
     last_fm::LastfmScrobbler,
-    osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_osu_window_details},
+    osu::{nerinyan::get_beatmapset, scrobble::OsuScrobble, window::get_window_details},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -13,25 +13,25 @@ pub fn get_current_timestamp() -> u64 {
 }
 
 fn check(
-    scrobble_config: &ScrobbleConfig,
+    config: &ScrobbleConfig,
     scrobbler: &LastfmScrobbler,
     osu_scrobble: &mut Option<OsuScrobble>,
 ) {
-    match get_osu_window_details() {
+    match get_window_details() {
         Some(window_details) => {
             if osu_scrobble.is_none() {
                 if let Some(beatmapset) = get_beatmapset(&window_details) {
-                    if beatmapset.length >= scrobble_config.min_beatmap_length_seconds {
+                    if beatmapset.length >= config.min_beatmap_length_seconds {
                         *osu_scrobble = Some(OsuScrobble::new(&window_details, &beatmapset));
 
                         println!(
                             "Playing: {} - {}",
-                            if scrobble_config.use_original_metadata {
+                            if config.use_original_metadata {
                                 &beatmapset.artist_unicode
                             } else {
                                 &beatmapset.artist
                             },
-                            if scrobble_config.use_original_metadata {
+                            if config.use_original_metadata {
                                 &beatmapset.title_unicode
                             } else {
                                 &beatmapset.title
@@ -43,7 +43,7 @@ fn check(
         }
         None => {
             if let Some(osu_scrobble) = osu_scrobble {
-                osu_scrobble.end(scrobble_config, scrobbler);
+                osu_scrobble.end(config, scrobbler);
             }
 
             *osu_scrobble = None;
@@ -51,7 +51,7 @@ fn check(
     }
 }
 
-pub fn main() {
+pub fn start() {
     let config = get_config();
 
     let scrobbler = LastfmScrobbler::new(
