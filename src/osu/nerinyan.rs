@@ -26,14 +26,14 @@ struct Beatmap {
 }
 
 pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
-    if let Ok(json) = Client::new()
+    if let Ok(beatmapsets) = Client::new()
         .get("https://api.nerinyan.moe/search")
         .query(&[("q", window_title)])
         .send()
         .unwrap()
         .json::<Vec<Beatmapset>>()
     {
-        for beatmapset in json {
+        for beatmapset in beatmapsets {
             for beatmap in beatmapset.beatmaps {
                 let mut difficulty = beatmap.version;
 
