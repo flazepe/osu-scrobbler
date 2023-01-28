@@ -1,7 +1,7 @@
-use crate::config::ScrobbleConfig;
-use crate::last_fm::LastfmScrobbler;
-use crate::osu::nerinyan::Beatmapset;
-use crate::scrobble_loop::get_current_timestamp;
+use crate::{
+    config::ScrobbleConfig, last_fm::LastfmScrobbler, osu::nerinyan::Beatmapset,
+    scrobble_loop::get_current_timestamp,
+};
 
 pub struct OsuScrobble {
     pub beatmapset: Beatmapset,

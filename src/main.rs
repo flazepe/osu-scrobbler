@@ -6,6 +6,6 @@ mod scrobble_loop;
 use scrobble_loop::start;
 
 fn main() {
-    println!("Started scrobbler!");
+    println!("Started osu-scrobbler!");
     start();
 }

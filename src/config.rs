@@ -2,19 +2,19 @@ use serde::Deserialize;
 use std::fs;
 use toml;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct Config {
     pub scrobble: ScrobbleConfig,
     pub last_fm: LastfmConfig,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct ScrobbleConfig {
     pub use_original_metadata: bool,
     pub min_beatmap_length_seconds: u32,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct LastfmConfig {
     pub username: String,
     pub password: String,

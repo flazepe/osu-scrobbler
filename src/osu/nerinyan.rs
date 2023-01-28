@@ -1,9 +1,8 @@
 use reqwest::blocking::Client;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urlencoding::encode;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone)]
 pub struct Beatmapset {
     pub artist: String,
     pub artist_unicode: String,
