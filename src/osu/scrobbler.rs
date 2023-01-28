@@ -2,16 +2,19 @@ use crate::{
     config::{get_config, ScrobbleConfig},
     last_fm::Scrobbler as LastfmScrobbler,
     osu::{
-        nerinyan::{get_beatmapset, Beatmapset},
+        nerinyan::{get_beatmapset, CompactBeatmapset},
         window::get_window_title,
     },
 };
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    thread::sleep,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 pub struct Scrobbler {
     config: ScrobbleConfig,
     last_fm: LastfmScrobbler,
-    beatmapset: Option<Beatmapset>,
+    beatmapset: Option<CompactBeatmapset>,
     timestamp: u64,
 }
 
@@ -44,8 +47,7 @@ impl Scrobbler {
 
         loop {
             self.poll();
-            let timestamp = Scrobbler::get_current_timestamp() + 1;
-            while Scrobbler::get_current_timestamp() < timestamp {}
+            sleep(Duration::from_secs(1));
         }
     }
 
@@ -54,7 +56,7 @@ impl Scrobbler {
             Some(window_title) => {
                 if self.beatmapset.is_none() {
                     if let Some(beatmapset) = get_beatmapset(&window_title) {
-                        if beatmapset.length >= self.config.min_beatmap_length_secs {
+                        if beatmapset.total_length >= self.config.min_beatmap_length_secs {
                             self.start_scrobble(&beatmapset);
                         }
                     }
@@ -64,7 +66,7 @@ impl Scrobbler {
         }
     }
 
-    fn start_scrobble(&mut self, beatmapset: &Beatmapset) {
+    fn start_scrobble(&mut self, beatmapset: &CompactBeatmapset) {
         self.beatmapset = Some(beatmapset.to_owned());
         self.timestamp = Scrobbler::get_current_timestamp();
 
@@ -114,7 +116,7 @@ impl Scrobbler {
         if let Some(beatmapset) = &self.beatmapset {
             let timestamp = Scrobbler::get_current_timestamp();
 
-            if timestamp >= self.timestamp + (u64::from(beatmapset.length) / 2)
+            if timestamp >= self.timestamp + (u64::from(beatmapset.total_length) / 2)
                 || timestamp >= self.timestamp + 240
             {
                 match self.last_fm.scrobble(

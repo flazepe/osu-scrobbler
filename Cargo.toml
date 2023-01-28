@@ -9,5 +9,4 @@ rustfm-scrobble = "1"
 serde = "1"
 serde_json = "1"
 toml = "0.6"
-urlencoding = "2"
 window_titles = { git = "https://github.com/HiruNya/window_titles" }

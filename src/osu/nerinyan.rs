@@ -1,35 +1,41 @@
 use reqwest::blocking::Client;
-use serde_json::Value;
-use urlencoding::encode;
+use serde::Deserialize;
 
 #[derive(Clone)]
+pub struct CompactBeatmapset {
+    pub artist: String,
+    pub artist_unicode: String,
+    pub title: String,
+    pub title_unicode: String,
+    pub total_length: u32,
+}
+
+#[derive(Clone, Deserialize)]
 pub struct Beatmapset {
     pub artist: String,
     pub artist_unicode: String,
     pub title: String,
     pub title_unicode: String,
-    pub length: u32,
+    pub beatmaps: Vec<Beatmap>,
 }
 
-pub fn get_beatmapset(window_title: &str) -> Option<Beatmapset> {
+#[derive(Clone, Deserialize)]
+pub struct Beatmap {
+    version: String,
+    total_length: u32,
+}
+
+pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
     if let Ok(json) = Client::new()
-        .get(format!(
-            "https://api.nerinyan.moe/search?q={}",
-            encode(window_title)
-        ))
+        .get("https://api.nerinyan.moe/search")
+        .query(&[("q", window_title)])
         .send()
         .unwrap()
-        .json::<Vec<Value>>()
+        .json::<Vec<Beatmapset>>()
     {
         for beatmapset in json {
-            for beatmap in beatmapset["beatmaps"].as_array().unwrap() {
-                let title = beatmapset["title"].as_str().unwrap();
-                let title_unicode = beatmapset["title_unicode"].as_str().unwrap();
-
-                let artist = beatmapset["artist"].as_str().unwrap();
-                let artist_unicode = beatmapset["artist_unicode"].as_str().unwrap();
-
-                let mut difficulty = beatmap["version"].as_str().unwrap().to_owned();
+            for beatmap in beatmapset.beatmaps {
+                let mut difficulty = beatmap.version;
 
                 // Mania difficulty names are prefixed with [nK] on the mirror
                 if difficulty.starts_with("[") && difficulty.contains("K] ") {
@@ -44,16 +50,21 @@ pub fn get_beatmapset(window_title: &str) -> Option<Beatmapset> {
                         .collect();
                 }
 
-                if format!("{} - {} [{}]", artist, title, difficulty) == window_title
-                    || format!("{} - {} [{}]", artist_unicode, title_unicode, difficulty)
-                        == window_title
+                if format!(
+                    "{} - {} [{}]",
+                    beatmapset.artist, beatmapset.title, difficulty
+                ) == window_title
+                    || format!(
+                        "{} - {} [{}]",
+                        beatmapset.artist_unicode, beatmapset.title_unicode, difficulty
+                    ) == window_title
                 {
-                    return Some(Beatmapset {
-                        artist: artist_unicode.to_owned(),
-                        artist_unicode: artist_unicode.to_owned(),
-                        title: title.to_owned(),
-                        title_unicode: title_unicode.to_owned(),
-                        length: beatmap["total_length"].to_string().parse::<u32>().unwrap(),
+                    return Some(CompactBeatmapset {
+                        artist: beatmapset.artist,
+                        artist_unicode: beatmapset.artist_unicode,
+                        title: beatmapset.title,
+                        title_unicode: beatmapset.title_unicode,
+                        total_length: beatmap.total_length,
                     });
                 }
             }
