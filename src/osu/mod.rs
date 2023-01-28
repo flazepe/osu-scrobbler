@@ -1,3 +1,3 @@
 pub mod nerinyan;
-pub mod scrobble;
+pub mod scrobbler;
 pub mod window;

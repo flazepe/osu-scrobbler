@@ -1,11 +1,9 @@
 mod config;
 mod last_fm;
 mod osu;
-mod scrobble_loop;
 
-use scrobble_loop::start;
+use osu::scrobbler::OsuScrobbler;
 
 fn main() {
-    println!("Started osu-scrobbler!");
-    start();
+    OsuScrobbler::new().start();
 }
