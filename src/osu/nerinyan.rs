@@ -10,7 +10,7 @@ pub struct CompactBeatmapset {
     pub total_length: u32,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Beatmapset {
     pub artist: String,
     pub artist_unicode: String,
@@ -19,7 +19,7 @@ pub struct Beatmapset {
     pub beatmaps: Vec<Beatmap>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Beatmap {
     version: String,
     total_length: u32,
@@ -40,7 +40,6 @@ pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
                 // Mania difficulty names are prefixed with [nK] on the mirror
                 if difficulty.starts_with("[") && difficulty.contains("K] ") {
                     difficulty = difficulty
-                        .to_owned()
                         .chars()
                         .skip(if difficulty.starts_with("[10K]") {
                             6
