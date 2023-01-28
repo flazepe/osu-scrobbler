@@ -11,16 +11,16 @@ pub struct CompactBeatmapset {
 }
 
 #[derive(Deserialize)]
-pub struct Beatmapset {
-    pub artist: String,
-    pub artist_unicode: String,
-    pub title: String,
-    pub title_unicode: String,
-    pub beatmaps: Vec<Beatmap>,
+struct Beatmapset {
+    artist: String,
+    artist_unicode: String,
+    title: String,
+    title_unicode: String,
+    beatmaps: Vec<Beatmap>,
 }
 
 #[derive(Deserialize)]
-pub struct Beatmap {
+struct Beatmap {
     version: String,
     total_length: u32,
 }
