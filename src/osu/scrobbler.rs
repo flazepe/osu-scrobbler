@@ -1,6 +1,6 @@
 use crate::{
     config::{get_config, ScrobbleConfig},
-    last_fm::LastfmScrobbler,
+    last_fm::Scrobbler as LastfmScrobbler,
     osu::{
         nerinyan::{get_beatmapset, Beatmapset},
         window::get_window_title,
@@ -8,14 +8,14 @@ use crate::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub struct OsuScrobbler {
+pub struct Scrobbler {
     config: ScrobbleConfig,
-    scrobbler: LastfmScrobbler,
+    last_fm: LastfmScrobbler,
     beatmapset: Option<Beatmapset>,
     timestamp: u64,
 }
 
-impl OsuScrobbler {
+impl Scrobbler {
     fn get_current_timestamp() -> u64 {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -28,14 +28,14 @@ impl OsuScrobbler {
 
         Self {
             config: config.scrobble,
-            scrobbler: LastfmScrobbler::new(
+            last_fm: LastfmScrobbler::new(
                 &config.last_fm.username,
                 &config.last_fm.password,
                 &config.last_fm.api_key,
                 &config.last_fm.api_secret,
             ),
             beatmapset: None,
-            timestamp: OsuScrobbler::get_current_timestamp(),
+            timestamp: Scrobbler::get_current_timestamp(),
         }
     }
 
@@ -44,8 +44,8 @@ impl OsuScrobbler {
 
         loop {
             self.poll();
-            let timestamp = OsuScrobbler::get_current_timestamp() + 1;
-            while OsuScrobbler::get_current_timestamp() < timestamp {}
+            let timestamp = Scrobbler::get_current_timestamp() + 1;
+            while Scrobbler::get_current_timestamp() < timestamp {}
         }
     }
 
@@ -66,7 +66,7 @@ impl OsuScrobbler {
 
     fn start_scrobble(&mut self, beatmapset: &Beatmapset) {
         self.beatmapset = Some(beatmapset.to_owned());
-        self.timestamp = OsuScrobbler::get_current_timestamp();
+        self.timestamp = Scrobbler::get_current_timestamp();
 
         println!(
             "Playing: {} - {}",
@@ -84,7 +84,7 @@ impl OsuScrobbler {
 
         // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.
         /*
-        match self.scrobbler.set_now_playing(
+        match self.last_fm.set_now_playing(
             if self.config.use_original_metadata {
                 &beatmapset.title_unicode
             } else {
@@ -112,12 +112,12 @@ impl OsuScrobbler {
 
     fn end_scrobble(&mut self) {
         if let Some(beatmapset) = &self.beatmapset {
-            let timestamp = OsuScrobbler::get_current_timestamp();
+            let timestamp = Scrobbler::get_current_timestamp();
 
             if timestamp >= self.timestamp + (u64::from(beatmapset.length) / 2)
                 || timestamp >= self.timestamp + 240
             {
-                match self.scrobbler.scrobble(
+                match self.last_fm.scrobble(
                     if self.config.use_original_metadata {
                         &beatmapset.title_unicode
                     } else {
