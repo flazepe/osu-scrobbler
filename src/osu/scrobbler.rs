@@ -116,7 +116,7 @@ impl Scrobbler {
         if let Some(beatmapset) = &self.beatmapset {
             let timestamp = Scrobbler::get_current_timestamp();
 
-            if timestamp >= self.timestamp + (u64::from(beatmapset.total_length) / 2)
+            if timestamp >= self.timestamp + (beatmapset.total_length as u64 / 2)
                 || timestamp >= self.timestamp + 240
             {
                 match self.last_fm.scrobble(
