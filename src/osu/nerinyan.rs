@@ -26,46 +26,45 @@ struct Beatmap {
 }
 
 pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
-    if let Ok(beatmapsets) = Client::new()
+    let beatmapsets = Client::new()
         .get("https://api.nerinyan.moe/search")
         .query(&[("q", window_title)])
         .send()
-        .unwrap()
-        .json::<Vec<Beatmapset>>()
-    {
-        for beatmapset in beatmapsets {
-            for beatmap in beatmapset.beatmaps {
-                let mut difficulty = beatmap.version;
+        .and_then(|response| response.json::<Vec<Beatmapset>>())
+        .unwrap_or(vec![]);
 
-                // Mania difficulty names are prefixed with [nK] on the mirror
-                if difficulty.starts_with("[") && difficulty.contains("K] ") {
-                    difficulty = difficulty
-                        .chars()
-                        .skip(if difficulty.starts_with("[10K]") {
-                            6
-                        } else {
-                            5
-                        })
-                        .collect();
-                }
+    for beatmapset in beatmapsets {
+        for beatmap in beatmapset.beatmaps {
+            let mut difficulty = beatmap.version;
 
-                if format!(
+            // Mania difficulty names are prefixed with [nK] on the mirror
+            if difficulty.starts_with("[") && difficulty.contains("K] ") {
+                difficulty = difficulty
+                    .chars()
+                    .skip(if difficulty.starts_with("[10K]") {
+                        6
+                    } else {
+                        5
+                    })
+                    .collect();
+            }
+
+            if format!(
+                "{} - {} [{}]",
+                beatmapset.artist, beatmapset.title, difficulty
+            ) == window_title
+                || format!(
                     "{} - {} [{}]",
-                    beatmapset.artist, beatmapset.title, difficulty
+                    beatmapset.artist_unicode, beatmapset.title_unicode, difficulty
                 ) == window_title
-                    || format!(
-                        "{} - {} [{}]",
-                        beatmapset.artist_unicode, beatmapset.title_unicode, difficulty
-                    ) == window_title
-                {
-                    return Some(CompactBeatmapset {
-                        artist: beatmapset.artist,
-                        artist_unicode: beatmapset.artist_unicode,
-                        title: beatmapset.title,
-                        title_unicode: beatmapset.title_unicode,
-                        total_length: beatmap.total_length,
-                    });
-                }
+            {
+                return Some(CompactBeatmapset {
+                    artist: beatmapset.artist,
+                    artist_unicode: beatmapset.artist_unicode,
+                    title: beatmapset.title,
+                    title_unicode: beatmapset.title_unicode,
+                    total_length: beatmap.total_length,
+                });
             }
         }
     }
