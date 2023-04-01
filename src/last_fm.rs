@@ -12,7 +12,7 @@ impl Scrobbler {
         let mut scrobbler = RustfmScrobbler::new(api_key, api_secret);
 
         match scrobbler.authenticate_with_password(username, password) {
-            Ok(_) => println!("Authenticated with Last.fm."),
+            Ok(_) => println!("Authenticated with Last.fm (username {username})."),
             Err(err) => panic!("An error occurred while authenticating to Last.fm: {}", err),
         };
 
