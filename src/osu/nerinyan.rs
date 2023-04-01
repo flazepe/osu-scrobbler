@@ -26,14 +26,13 @@ struct Beatmap {
 }
 
 pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
-    let beatmapsets = Client::new()
+    for beatmapset in Client::new()
         .get("https://api.nerinyan.moe/search")
         .query(&[("q", window_title)])
         .send()
         .and_then(|response| response.json::<Vec<Beatmapset>>())
-        .unwrap_or(vec![]);
-
-    for beatmapset in beatmapsets {
+        .unwrap_or(vec![])
+    {
         for beatmap in beatmapset.beatmaps {
             let mut difficulty = beatmap.version;
 
@@ -50,12 +49,12 @@ pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
             }
 
             if format!(
-                "{} - {} [{}]",
-                beatmapset.artist, beatmapset.title, difficulty
+                "{} - {} [{difficulty}]",
+                beatmapset.artist, beatmapset.title
             ) == window_title
                 || format!(
-                    "{} - {} [{}]",
-                    beatmapset.artist_unicode, beatmapset.title_unicode, difficulty
+                    "{} - {} [{difficulty}]",
+                    beatmapset.artist_unicode, beatmapset.title_unicode
                 ) == window_title
             {
                 return Some(CompactBeatmapset {

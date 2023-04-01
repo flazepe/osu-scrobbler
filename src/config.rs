@@ -28,6 +28,6 @@ pub fn get_config() -> Config {
         Err(_) => panic!("No config file found!"),
     }) {
         Ok(config) => config,
-        Err(err) => panic!("An error occurred while reading config: {}", err),
+        Err(error) => panic!("An error occurred while reading config: {error}"),
     }
 }
