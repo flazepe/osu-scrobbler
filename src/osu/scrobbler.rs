@@ -83,33 +83,6 @@ impl Scrobbler {
                 &beatmapset.title
             }
         );
-
-        // Hide this for now. Need to figure out how to make the last now playing message disappear after scrobbling a track.
-        /*
-        match self.last_fm.set_now_playing(
-            if self.config.use_original_metadata {
-                &beatmapset.title_unicode
-            } else {
-                &beatmapset.title
-            },
-            if self.config.use_original_metadata {
-                &beatmapset.artist_unicode
-            } else {
-                &beatmapset.artist
-            },
-            if self.config.use_original_metadata {
-                &beatmapset.title_unicode
-            } else {
-                &beatmapset.title
-            },
-        ) {
-            Ok(_) => (),
-            Err(err) => println!(
-                "An error occurred while setting Last.fm now playing: {}",
-                err
-            ),
-        }
-        */
     }
 
     fn end_scrobble(&mut self) {
