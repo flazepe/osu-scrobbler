@@ -55,11 +55,8 @@ impl Scrobbler {
         match get_window_title() {
             Some(window_title) => {
                 if self.beatmapset.is_none() {
-                    if let Some(beatmapset) = get_beatmapset(&window_title) {
-                        if beatmapset.total_length >= self.config.min_beatmap_length_secs {
-                            self.start_scrobble(&beatmapset);
-                        }
-                    }
+                    let Some(beatmapset) = get_beatmapset(&window_title) else { return; };
+                    self.start_scrobble(&beatmapset);
                 }
             }
             None => self.end_scrobble(),
@@ -67,58 +64,55 @@ impl Scrobbler {
     }
 
     fn start_scrobble(&mut self, beatmapset: &CompactBeatmapset) {
-        self.beatmapset = Some(beatmapset.to_owned());
+        if beatmapset.total_length < self.config.min_beatmap_length_secs {
+            return;
+        }
+
+        self.beatmapset = Some(beatmapset.clone());
         self.timestamp = Scrobbler::get_current_timestamp();
 
         println!(
             "Playing: {} - {}",
-            if self.config.use_original_metadata {
-                &beatmapset.artist_unicode
-            } else {
-                &beatmapset.artist
+            match self.config.use_original_metadata {
+                true => &beatmapset.artist_unicode,
+                false => &beatmapset.artist,
             },
-            if self.config.use_original_metadata {
-                &beatmapset.title_unicode
-            } else {
-                &beatmapset.title
-            }
+            match self.config.use_original_metadata {
+                true => &beatmapset.title_unicode,
+                false => &beatmapset.title,
+            },
         );
     }
 
     fn end_scrobble(&mut self) {
-        if let Some(beatmapset) = &self.beatmapset {
-            let timestamp = Scrobbler::get_current_timestamp();
+        let Some(beatmapset) = &self.beatmapset else { return; };
+        let timestamp = Scrobbler::get_current_timestamp();
 
-            if timestamp >= self.timestamp + (beatmapset.total_length as u64 / 2)
-                || timestamp >= self.timestamp + 240
-            {
-                match self.last_fm.scrobble(
-                    if self.config.use_original_metadata {
-                        &beatmapset.title_unicode
-                    } else {
-                        &beatmapset.title
-                    },
-                    if self.config.use_original_metadata {
-                        &beatmapset.artist_unicode
-                    } else {
-                        &beatmapset.artist
-                    },
-                    if self.config.use_original_metadata {
-                        &beatmapset.title_unicode
-                    } else {
-                        &beatmapset.title
-                    },
-                ) {
-                    Ok(_) => println!("Scrobbled ^"),
-                    Err(error) => {
-                        println!("An error occurred while scrobbling to Last.fm: {error}")
-                    }
-                };
-            } else {
-                println!("Not scrobbled ^");
-            }
-
-            self.beatmapset = None;
+        match timestamp >= self.timestamp + (beatmapset.total_length as u64 / 2)
+            || timestamp >= self.timestamp + 240
+        {
+            true => match self.last_fm.scrobble(
+                match self.config.use_original_metadata {
+                    true => &beatmapset.title_unicode,
+                    false => &beatmapset.title,
+                },
+                match self.config.use_original_metadata {
+                    true => &beatmapset.artist_unicode,
+                    false => &beatmapset.artist,
+                },
+                match self.config.use_original_metadata {
+                    true => &beatmapset.title_unicode,
+                    false => &beatmapset.title,
+                },
+            ) {
+                Ok(_) => println!("Scrobbled ^"),
+                Err(error) => {
+                    println!("An error occurred while scrobbling to Last.fm: {error}")
+                }
+            },
+            false => println!("Not scrobbled ^"),
         }
+
+        self.beatmapset = None;
     }
 }

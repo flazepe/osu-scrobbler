@@ -37,24 +37,23 @@ pub fn get_beatmapset(window_title: &str) -> Option<CompactBeatmapset> {
             let mut difficulty = beatmap.version;
 
             // Mania difficulty names are prefixed with [nK] on the mirror
-            if difficulty.starts_with("[") && difficulty.contains("K] ") {
+            if difficulty.starts_with('[') && difficulty.contains("K] ") {
                 difficulty = difficulty
                     .chars()
-                    .skip(if difficulty.starts_with("[10K]") {
-                        6
-                    } else {
-                        5
+                    .skip(match difficulty.starts_with("[10K]") {
+                        true => 6,
+                        false => 5,
                     })
                     .collect();
             }
 
             if format!(
                 "{} - {} [{difficulty}]",
-                beatmapset.artist, beatmapset.title
+                beatmapset.artist, beatmapset.title,
             ) == window_title
                 || format!(
                     "{} - {} [{difficulty}]",
-                    beatmapset.artist_unicode, beatmapset.title_unicode
+                    beatmapset.artist_unicode, beatmapset.title_unicode,
                 ) == window_title
             {
                 return Some(CompactBeatmapset {
