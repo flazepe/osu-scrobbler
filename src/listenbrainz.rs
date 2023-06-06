@@ -47,25 +47,21 @@ impl ListenBrainzScrobbler {
     }
 
     fn _scrobble<T: Serialize>(&self, endpoint: &str, json: T) -> Result<(), ScrobblerError> {
-        let response = match self
+        match self
             .client
             .post(format!("{API_BASE_URL}/{endpoint}"))
             .header("authorization", format!("Token {}", self.user_token))
             .json(&json)
             .send()
         {
-            Ok(response) => response,
-            Err(error) => {
-                return Err(ScrobblerError {
-                    message: format!("{error}"),
-                })
-            }
-        };
-
-        match response.status() {
-            StatusCode::OK => Ok(()),
-            status_code @ _ => Err(ScrobblerError {
-                message: format!("Scrobble request failed: Received status code {status_code}"),
+            Ok(response) => match response.status() {
+                StatusCode::OK => Ok(()),
+                status_code @ _ => Err(ScrobblerError {
+                    message: format!("Scrobble request failed: Received status code {status_code}"),
+                }),
+            },
+            Err(error) => Err(ScrobblerError {
+                message: format!("{error}"),
             }),
         }
     }
