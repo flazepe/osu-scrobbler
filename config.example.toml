@@ -2,8 +2,13 @@
 use_original_metadata = true
 min_beatmap_length_secs = 60
 
+# This section can be omitted if you do not use Last.fm
 [last_fm]
-username = "hello"
-password = "password123"
-api_key = "09jt782j893gq7h2aaow90235"
-api_secret = "df97ht409s0m0q3k209gdj3"
+username = "username"
+password = "password"
+api_key = "api_key"
+api_secret = "api_secret"
+
+# This section can be omitted if you do not use ListenBrainz
+[listenbrainz]
+user_token = "user_token"

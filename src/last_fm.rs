@@ -1,15 +1,15 @@
 use rustfm_scrobble::{
     responses::{NowPlayingResponse, ScrobbleResponse},
-    Scrobble, Scrobbler as RustfmScrobbler, ScrobblerError,
+    Scrobble, Scrobbler, ScrobblerError,
 };
 
-pub struct Scrobbler {
-    scrobbler: RustfmScrobbler,
+pub struct LastfmScrobbler {
+    scrobbler: Scrobbler,
 }
 
-impl Scrobbler {
+impl LastfmScrobbler {
     pub fn new(username: &str, password: &str, api_key: &str, api_secret: &str) -> Self {
-        let mut scrobbler = RustfmScrobbler::new(api_key, api_secret);
+        let mut scrobbler = Scrobbler::new(api_key, api_secret);
 
         match scrobbler.authenticate_with_password(username, password) {
             Ok(_) => println!("Authenticated with Last.fm (username: {username})."),
@@ -23,19 +23,13 @@ impl Scrobbler {
         &self,
         title: &str,
         artist: &str,
-        album: &str,
     ) -> Result<NowPlayingResponse, ScrobblerError> {
         self.scrobbler
-            .now_playing(&Scrobble::new(artist, title, album))
+            .now_playing(&Scrobble::new(artist, title, title))
     }
 
-    pub fn scrobble(
-        &self,
-        title: &str,
-        artist: &str,
-        album: &str,
-    ) -> Result<ScrobbleResponse, ScrobblerError> {
+    pub fn scrobble(&self, title: &str, artist: &str) -> Result<ScrobbleResponse, ScrobblerError> {
         self.scrobbler
-            .scrobble(&Scrobble::new(artist, title, album))
+            .scrobble(&Scrobble::new(artist, title, title))
     }
 }

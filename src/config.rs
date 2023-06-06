@@ -5,7 +5,8 @@ use toml::from_str;
 #[derive(Deserialize)]
 pub struct Config {
     pub scrobble: ScrobbleConfig,
-    pub last_fm: LastfmConfig,
+    pub last_fm: Option<LastfmConfig>,
+    pub listenbrainz: Option<ListenBrainzConfig>,
 }
 
 #[derive(Deserialize)]
@@ -20,6 +21,11 @@ pub struct LastfmConfig {
     pub password: String,
     pub api_key: String,
     pub api_secret: String,
+}
+
+#[derive(Deserialize)]
+pub struct ListenBrainzConfig {
+    pub user_token: String,
 }
 
 pub fn get_config() -> Config {
