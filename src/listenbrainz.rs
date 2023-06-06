@@ -61,7 +61,7 @@ impl ListenBrainzScrobbler {
                 }),
             },
             Err(error) => Err(ScrobblerError {
-                message: format!("{error}"),
+                message: error.to_string(),
             }),
         }
     }
