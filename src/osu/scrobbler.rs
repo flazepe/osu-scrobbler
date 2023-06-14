@@ -76,7 +76,7 @@ impl OsuScrobbler {
         println!("New score found: {artist} - {title}");
 
         if let Some(last_fm) = self.last_fm.as_ref() {
-            match last_fm.scrobble(title, artist) {
+            match last_fm.scrobble(title, artist, score.beatmap.total_length) {
                 Ok(_) => println!("Scrobbled to Last.fm ^"),
                 Err(error) => {
                     println!("An error occurred while scrobbling ^ to Last.fm: {error}")

@@ -1,5 +1,5 @@
 use reqwest::{blocking::Client, StatusCode};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -48,50 +48,17 @@ impl ListenBrainzScrobbler {
         }
     }
 
-    fn _scrobble<T: Serialize>(&self, endpoint: &str, json: T) -> Result<(), ScrobblerError> {
-        match self
-            .client
-            .post(format!("{API_BASE_URL}/{endpoint}"))
-            .header("authorization", format!("Token {}", self.user_token))
-            .json(&json)
-            .send()
-        {
-            Ok(response) => match response.status() {
-                StatusCode::OK => Ok(()),
-                status_code @ _ => Err(ScrobblerError {
-                    message: format!("Scrobble request failed: Received status code {status_code}"),
-                }),
-            },
-            Err(error) => Err(ScrobblerError {
-                message: error.to_string(),
-            }),
-        }
-    }
-
-    pub fn set_now_playing(&self, title: &str, artist: &str) -> Result<(), ScrobblerError> {
-        self._scrobble(
-            "now-playing",
-            json!({
-                "listen_type": "playing_now",
-                "payload": [{
-                    "track_metadata": {
-                        "artist_name": artist,
-                        "track_name": title,
-                    },
-                }],
-            }),
-        )
-    }
-
     pub fn scrobble(
         &self,
         title: &str,
         artist: &str,
         total_length: u32,
     ) -> Result<(), ScrobblerError> {
-        self._scrobble(
-            "submit-listens",
-            json!({
+        match self
+            .client
+            .post(format!("{API_BASE_URL}/submit-listens"))
+            .header("authorization", format!("Token {}", self.user_token))
+            .json(&json!({
                 "listen_type": "single",
                 "payload": [{
                     "listened_at": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
@@ -106,7 +73,18 @@ impl ListenBrainzScrobbler {
                         },
                     },
                 }],
+            }))
+            .send()
+        {
+            Ok(response) => match response.status() {
+                StatusCode::OK => Ok(()),
+                status_code => Err(ScrobblerError {
+                    message: format!("Scrobble request failed: Received status code {status_code}"),
+                }),
+            },
+            Err(error) => Err(ScrobblerError {
+                message: error.to_string(),
             }),
-        )
+        }
     }
 }
