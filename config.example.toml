@@ -9,7 +9,7 @@ min_beatmap_length_secs = 60 # The minimum beatmap length to scrobble (in second
 username = "username" # Your Last.fm username
 password = "password" # Your Last.fm password
 api_key = "api_key" # Your Last.fm API key
-api_secret = "api_secret# Your Last.fm API secret
+api_secret = "api_secret" # Your Last.fm API secret
 
 # This section can be omitted if you do not use ListenBrainz
 [listenbrainz]
