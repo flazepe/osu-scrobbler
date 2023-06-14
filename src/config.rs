@@ -4,13 +4,15 @@ use toml::from_str;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub scrobble: ScrobbleConfig,
+    pub scrobble: ScrobblerConfig,
     pub last_fm: Option<LastfmConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
 }
 
 #[derive(Deserialize)]
-pub struct ScrobbleConfig {
+pub struct ScrobblerConfig {
+    pub user_id: u64,
+    pub mode: Option<String>,
     pub use_original_metadata: bool,
     pub min_beatmap_length_secs: u32,
 }

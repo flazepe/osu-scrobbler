@@ -1,14 +1,16 @@
 [scrobble]
-use_original_metadata = true
-min_beatmap_length_secs = 60
+user_id = 1234567 # Your osu! user ID
+mode = "osu" # The osu! mode to scrobble. Possible values: `osu`, `taiko`, `fruits`, `mania`. Omit this field to use your default mode
+use_original_metadata = true # Whether to use original metadata instead of romanized metadata
+min_beatmap_length_secs = 60 # The minimum beatmap length to scrobble (in seconds)
 
 # This section can be omitted if you do not use Last.fm
 [last_fm]
-username = "username"
-password = "password"
-api_key = "api_key"
-api_secret = "api_secret"
+username = "username" # Your Last.fm username
+password = "password" # Your Last.fm password
+api_key = "api_key" # Your Last.fm API key
+api_secret = "api_secret# Your Last.fm API secret
 
 # This section can be omitted if you do not use ListenBrainz
 [listenbrainz]
-user_token = "user_token"
+user_token = "user_token" # Your ListenBrainz user token 

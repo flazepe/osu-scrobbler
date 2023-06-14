@@ -1,3 +1,2 @@
-pub mod nerinyan;
+pub mod api;
 pub mod scrobbler;
-pub mod window;

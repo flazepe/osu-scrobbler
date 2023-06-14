@@ -1,33 +1,19 @@
 use crate::{
-    config::{get_config, ScrobbleConfig},
+    config::{get_config, ScrobblerConfig},
     last_fm::LastfmScrobbler,
     listenbrainz::ListenBrainzScrobbler,
-    osu::{
-        nerinyan::{get_beatmapset, CompactBeatmapset},
-        window::get_window_title,
-    },
+    osu::api::{get_last_score, OsuScore},
 };
-use std::{
-    thread::sleep,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{thread::sleep, time::Duration};
 
 pub struct OsuScrobbler {
-    config: ScrobbleConfig,
+    config: ScrobblerConfig,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
-    beatmapset: Option<CompactBeatmapset>,
-    timestamp: u64,
+    last_score: Option<OsuScore>,
 }
 
 impl OsuScrobbler {
-    pub fn get_current_timestamp() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-    }
-
     pub fn new() -> Self {
         let config = get_config();
 
@@ -44,92 +30,69 @@ impl OsuScrobbler {
             listenbrainz: config
                 .listenbrainz
                 .map(|listenbrainz| ListenBrainzScrobbler::new(&listenbrainz.user_token)),
-            beatmapset: None,
-            timestamp: Self::get_current_timestamp(),
+            last_score: None,
         }
     }
 
     pub fn start(&mut self) {
         println!("Started osu-scrobbler!");
 
+        // Set the initial last score
+        self.last_score = get_last_score(self.config.user_id, self.config.mode.as_ref().cloned());
+
         loop {
             self.poll();
-            sleep(Duration::from_secs(1));
+            sleep(Duration::from_secs(5));
         }
     }
 
     fn poll(&mut self) {
-        match get_window_title() {
-            Some(window_title) => {
-                if self.beatmapset.is_none() {
-                    let Some(beatmapset) = get_beatmapset(&window_title) else { return; };
-                    self.start_scrobble(&beatmapset);
-                }
-            }
-            None => self.end_scrobble(),
+        let Some(score) = get_last_score(self.config.user_id, self.config.mode.as_ref().cloned()) else { return; };
+
+        if self
+            .last_score
+            .as_ref()
+            .map_or(true, |last_score| last_score.ended_at != score.ended_at)
+        {
+            self.scrobble(score);
         }
     }
 
-    fn start_scrobble(&mut self, beatmapset: &CompactBeatmapset) {
-        if beatmapset.total_length < self.config.min_beatmap_length_secs {
+    fn scrobble(&mut self, score: OsuScore) {
+        if score.beatmap.total_length < self.config.min_beatmap_length_secs {
             return;
         }
 
-        self.beatmapset = Some(beatmapset.clone());
-        self.timestamp = Self::get_current_timestamp();
+        let title = match self.config.use_original_metadata {
+            true => &score.beatmapset.title_unicode,
+            false => &score.beatmapset.title,
+        };
 
-        println!(
-            "Playing: {} - {}",
-            match self.config.use_original_metadata {
-                true => &beatmapset.artist_unicode,
-                false => &beatmapset.artist,
-            },
-            match self.config.use_original_metadata {
-                true => &beatmapset.title_unicode,
-                false => &beatmapset.title,
-            },
-        );
-    }
+        let artist = match self.config.use_original_metadata {
+            true => &score.beatmapset.artist_unicode,
+            false => &score.beatmapset.artist,
+        };
 
-    fn end_scrobble(&mut self) {
-        let Some(beatmapset) = &self.beatmapset else { return; };
-        let timestamp = Self::get_current_timestamp();
+        println!("New score found: {artist} - {title}");
 
-        match timestamp >= self.timestamp + (beatmapset.total_length as u64 / 2)
-            || timestamp >= self.timestamp + 240
-        {
-            true => {
-                let title = match self.config.use_original_metadata {
-                    true => &beatmapset.title_unicode,
-                    false => &beatmapset.title,
-                };
-
-                let artist = match self.config.use_original_metadata {
-                    true => &beatmapset.artist_unicode,
-                    false => &beatmapset.artist,
-                };
-
-                if let Some(last_fm) = self.last_fm.as_ref() {
-                    match last_fm.scrobble(title, artist) {
-                        Ok(_) => println!("Scrobbled to Last.fm ^"),
-                        Err(error) => {
-                            println!("An error occurred while scrobbling to Last.fm: {error}")
-                        }
-                    }
-                }
-
-                if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-                    match listenbrainz.scrobble(title, artist) {
-                        Ok(_) => println!("Scrobbled to ListenBrainz ^"),
-                        Err(error) => {
-                            println!("An error occurred while scrobbling to ListenBrainz: {error}")
-                        }
-                    }
+        if let Some(last_fm) = self.last_fm.as_ref() {
+            match last_fm.scrobble(title, artist) {
+                Ok(_) => println!("Scrobbled to Last.fm ^"),
+                Err(error) => {
+                    println!("An error occurred while scrobbling ^ to Last.fm: {error}")
                 }
             }
-            false => println!("Not scrobbled ^"),
         }
 
-        self.beatmapset = None;
+        if let Some(listenbrainz) = self.listenbrainz.as_ref() {
+            match listenbrainz.scrobble(title, artist) {
+                Ok(_) => println!("Scrobbled to ListenBrainz ^"),
+                Err(error) => {
+                    println!("An error occurred while scrobbling ^ to ListenBrainz: {error}")
+                }
+            }
+        }
+
+        self.last_score = Some(score);
     }
 }

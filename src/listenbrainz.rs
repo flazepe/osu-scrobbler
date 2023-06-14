@@ -1,8 +1,10 @@
-use crate::OsuScrobbler;
 use reqwest::{blocking::Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 const API_BASE_URL: &str = "https://api.listenbrainz.org/1";
 
@@ -87,7 +89,7 @@ impl ListenBrainzScrobbler {
             json!({
                 "listen_type": "single",
                 "payload": [{
-                    "listened_at": OsuScrobbler::get_current_timestamp(),
+                    "listened_at": SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
                     "track_metadata": {
                         "artist_name": artist,
                         "track_name": title,
