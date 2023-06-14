@@ -85,7 +85,7 @@ impl OsuScrobbler {
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-            match listenbrainz.scrobble(title, artist) {
+            match listenbrainz.scrobble(title, artist, score.beatmap.total_length) {
                 Ok(_) => println!("Scrobbled to ListenBrainz ^"),
                 Err(error) => {
                     println!("An error occurred while scrobbling ^ to ListenBrainz: {error}")

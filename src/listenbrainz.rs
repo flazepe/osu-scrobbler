@@ -83,7 +83,12 @@ impl ListenBrainzScrobbler {
         )
     }
 
-    pub fn scrobble(&self, title: &str, artist: &str) -> Result<(), ScrobblerError> {
+    pub fn scrobble(
+        &self,
+        title: &str,
+        artist: &str,
+        total_length: u32,
+    ) -> Result<(), ScrobblerError> {
         self._scrobble(
             "submit-listens",
             json!({
@@ -93,6 +98,12 @@ impl ListenBrainzScrobbler {
                     "track_metadata": {
                         "artist_name": artist,
                         "track_name": title,
+                        "additional_info": {
+                            "media_player": "osu!",
+                            "submission_client": "osu!scrobbler (github.com/flazepe/osu-scrobbler)",
+                            "submission_client_version": env!("CARGO_PKG_VERSION"),
+                            "duration_ms": total_length * 1000,
+                        },
                     },
                 }],
             }),
