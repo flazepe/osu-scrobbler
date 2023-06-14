@@ -21,12 +21,12 @@ pub struct OsuBeatmapset {
     pub title_unicode: String,
 }
 
-pub fn get_last_score(id: u64, mode: Option<String>) -> Option<OsuScore> {
+pub fn get_last_score(user_id: u64, mode: Option<String>) -> Option<OsuScore> {
     let mode = mode.unwrap_or("".into());
 
     match Client::new()
         .get(format!(
-            "https://osu.ppy.sh/users/{id}/scores/recent{}",
+            "https://osu.ppy.sh/users/{user_id}/scores/recent{}",
             match ["osu", "taiko", "fruits", "mania"].contains(&mode.as_str()) {
                 true => format!("?mode={mode}"),
                 false => "".into(),
