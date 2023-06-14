@@ -55,7 +55,7 @@ impl ListenBrainzScrobbler {
                         "track_name": title,
                         "additional_info": {
                             "media_player": "osu!",
-                            "submission_client": "osu!scrobbler (github.com/flazepe/osu-scrobbler)",
+                            "submission_client": "osu-scrobbler (github.com/flazepe/osu-scrobbler)",
                             "submission_client_version": env!("CARGO_PKG_VERSION"),
                             "duration_ms": total_length * 1000,
                         },
