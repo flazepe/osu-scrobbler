@@ -1,10 +1,8 @@
 mod config;
-mod last_fm;
-mod listenbrainz;
-mod osu;
+mod scrobbler;
 
-use osu::scrobbler::OsuScrobbler;
+use scrobbler::Scrobbler;
 
 fn main() {
-    OsuScrobbler::new().start();
+    Scrobbler::new().start();
 }

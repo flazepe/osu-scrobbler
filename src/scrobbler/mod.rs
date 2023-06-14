@@ -1,19 +1,56 @@
+mod last_fm;
+mod listenbrainz;
+
 use crate::{
     config::{get_config, ScrobblerConfig},
-    last_fm::LastfmScrobbler,
-    listenbrainz::ListenBrainzScrobbler,
-    osu::api::{get_last_score, OsuScore},
+    scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
-use std::{thread::sleep, time::Duration};
+use reqwest::blocking::Client;
+use serde::Deserialize;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    thread::sleep,
+    time::Duration,
+};
 
-pub struct OsuScrobbler {
+pub struct Scrobbler {
     config: ScrobblerConfig,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
-    last_score: Option<OsuScore>,
+    last_score: Option<Score>,
 }
 
-impl OsuScrobbler {
+pub struct ScrobblerError {
+    message: String,
+}
+
+impl Display for ScrobblerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.message)
+    }
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Score {
+    pub ended_at: String,
+    pub beatmap: Beatmap,
+    pub beatmapset: Beatmapset,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Beatmap {
+    pub total_length: u32,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Beatmapset {
+    pub artist: String,
+    pub artist_unicode: String,
+    pub title: String,
+    pub title_unicode: String,
+}
+
+impl Scrobbler {
     pub fn new() -> Self {
         let config = get_config();
 
@@ -38,7 +75,7 @@ impl OsuScrobbler {
         println!("Started osu-scrobbler!");
 
         // Set the initial last score
-        self.last_score = get_last_score(self.config.user_id, self.config.mode.as_ref().cloned());
+        self.last_score = self.get_last_score();
 
         loop {
             self.poll();
@@ -47,7 +84,7 @@ impl OsuScrobbler {
     }
 
     fn poll(&mut self) {
-        let Some(score) = get_last_score(self.config.user_id, self.config.mode.as_ref().cloned()) else { return; };
+        let Some(score) = self.get_last_score() else { return; };
 
         if self
             .last_score
@@ -58,7 +95,7 @@ impl OsuScrobbler {
         }
     }
 
-    fn scrobble(&mut self, score: OsuScore) {
+    fn scrobble(&mut self, score: Score) {
         if score.beatmap.total_length < self.config.min_beatmap_length_secs {
             return;
         }
@@ -94,5 +131,27 @@ impl OsuScrobbler {
         }
 
         self.last_score = Some(score);
+    }
+
+    fn get_last_score(&self) -> Option<Score> {
+        let mut request = Client::new().get(format!(
+            "https://osu.ppy.sh/users/{}/scores/recent",
+            self.config.user_id,
+        ));
+
+        if let Some(mode) = self.config.mode.as_ref() {
+            request = request.query(&[("mode", mode)])
+        }
+
+        match request
+            .send()
+            .and_then(|response| response.json::<Vec<Score>>())
+        {
+            Ok(mut scores) => match scores.is_empty() {
+                true => None,
+                false => Some(scores.remove(0)),
+            },
+            Err(_) => panic!("Invalid osu! user ID given."),
+        }
     }
 }

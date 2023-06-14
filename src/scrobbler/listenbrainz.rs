@@ -1,10 +1,8 @@
+use crate::scrobbler::ScrobblerError;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
 use serde_json::json;
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const API_BASE_URL: &str = "https://api.listenbrainz.org/1";
 
@@ -14,18 +12,8 @@ pub struct ListenBrainzScrobbler {
 }
 
 #[derive(Deserialize)]
-struct ValidToken {
+struct ListenBrainzToken {
     user_name: String,
-}
-
-pub struct ScrobblerError {
-    message: String,
-}
-
-impl Display for ScrobblerError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.message)
-    }
 }
 
 impl ListenBrainzScrobbler {
@@ -37,7 +25,7 @@ impl ListenBrainzScrobbler {
             .header("authorization", format!("Token {user_token}"))
             .send()
             .unwrap()
-            .json::<ValidToken>() {
+            .json::<ListenBrainzToken>() {
 				Ok(token) => println!("Authenticated with ListenBrainz (username: {}).", token.user_name),
 				Err(_) => panic!("An error occurred while authenticating to ListenBrainz: Invalid user token provided"),
 			};

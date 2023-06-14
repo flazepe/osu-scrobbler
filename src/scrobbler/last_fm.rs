@@ -1,10 +1,8 @@
+use crate::scrobbler::ScrobblerError;
 use md5::compute;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const API_BASE_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 
@@ -24,16 +22,6 @@ struct LastfmSession {
 struct LastfmSessionData {
     name: String,
     key: String,
-}
-
-pub struct ScrobblerError {
-    message: String,
-}
-
-impl Display for ScrobblerError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.message)
-    }
 }
 
 impl LastfmScrobbler {

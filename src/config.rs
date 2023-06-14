@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 use toml::from_str;
 
@@ -12,9 +12,18 @@ pub struct Config {
 #[derive(Deserialize)]
 pub struct ScrobblerConfig {
     pub user_id: u64,
-    pub mode: Option<String>,
+    pub mode: Option<Mode>,
     pub use_original_metadata: bool,
     pub min_beatmap_length_secs: u32,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    Osu,
+    Taiko,
+    Fruits,
+    Mania,
 }
 
 #[derive(Deserialize)]
