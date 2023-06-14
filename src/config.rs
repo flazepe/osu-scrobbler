@@ -4,7 +4,7 @@ use toml::from_str;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub scrobble: ScrobblerConfig,
+    pub scrobbler: ScrobblerConfig,
     pub last_fm: Option<LastfmConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
 }

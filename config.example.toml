@@ -1,4 +1,4 @@
-[scrobble]
+[scrobbler]
 user_id = 1234567 # Your osu! user ID
 mode = "osu" # The osu! mode to scrobble. Possible values: `osu`, `taiko`, `fruits`, `mania`. Omit this field to use your default mode
 use_original_metadata = true # Whether to use original metadata instead of romanized metadata
@@ -13,4 +13,4 @@ api_secret = "api_secret" # Your Last.fm API secret
 
 # This section can be omitted if you do not use ListenBrainz
 [listenbrainz]
-user_token = "user_token" # Your ListenBrainz user token 
+user_token = "user_token" # Your ListenBrainz user token

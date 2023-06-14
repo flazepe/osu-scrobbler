@@ -18,7 +18,7 @@ impl OsuScrobbler {
         let config = get_config();
 
         Self {
-            config: config.scrobble,
+            config: config.scrobbler,
             last_fm: config.last_fm.map(|last_fm| {
                 LastfmScrobbler::new(
                     &last_fm.username,
