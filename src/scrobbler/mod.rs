@@ -7,27 +7,13 @@ use crate::{
 };
 use reqwest::blocking::Client;
 use serde::Deserialize;
-use std::{
-    fmt::{Display, Formatter, Result as FmtResult},
-    thread::sleep,
-    time::Duration,
-};
+use std::{thread::sleep, time::Duration};
 
 pub struct Scrobbler {
     config: ScrobblerConfig,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
     last_score: Option<Score>,
-}
-
-pub struct ScrobblerError {
-    message: String,
-}
-
-impl Display for ScrobblerError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.message)
-    }
 }
 
 #[derive(Clone, Deserialize)]

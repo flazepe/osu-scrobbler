@@ -1,4 +1,3 @@
-use crate::scrobbler::ScrobblerError;
 use md5::compute;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
@@ -60,7 +59,7 @@ impl LastfmScrobbler {
         Self { client, api_key: api_key.to_string(), api_secret: api_secret.to_string(), session_key }
     }
 
-    pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), ScrobblerError> {
+    pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), String> {
         let method = "track.scrobble";
 
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -93,9 +92,9 @@ impl LastfmScrobbler {
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(ScrobblerError { message: format!("Scrobble request failed: Received status code {status_code}") }),
+                status_code => Err(format!("Scrobble request failed: Received status code {status_code}")),
             },
-            Err(error) => Err(ScrobblerError { message: error.to_string() }),
+            Err(error) => Err(error.to_string()),
         }
     }
 }
