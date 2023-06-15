@@ -2,7 +2,10 @@ use colored::Colorize;
 use md5::compute;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::BTreeMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 const API_BASE_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 
@@ -25,27 +28,22 @@ struct LastfmSessionData {
 }
 
 impl LastfmScrobbler {
-    pub fn new(username: &str, password: &str, api_key: &str, api_secret: &str) -> Self {
+    pub fn new(username: String, password: String, api_key: String, api_secret: String) -> Self {
         let client = Client::new();
-
-        let format = "json";
-        let method = "auth.getMobileSession";
 
         let session_key = match client
             .post(API_BASE_URL)
             .header("content-length", "0")
-            .query(&[
-                ("format", format),
-                ("api_key", api_key),
-                ("method", method),
-                ("password", password),
-                ("username", username),
-                (
-                    "api_sig",
-                    format!("{:x}", compute(format!("api_key{api_key}method{method}password{password}username{username}{api_secret}")))
-                        .as_str(),
-                ),
-            ])
+            .query(&Self::sign_query(
+                BTreeMap::from([
+                    ("format", "json".to_string()),
+                    ("api_key", api_key.to_string()),
+                    ("method", "auth.getMobileSession".to_string()),
+                    ("password", password),
+                    ("username", username),
+                ]),
+                &api_secret,
+            ))
             .send()
             .unwrap()
             .json::<LastfmSession>()
@@ -57,45 +55,49 @@ impl LastfmScrobbler {
             Err(_) => panic!("{} Invalid credentials provided.", "[Last.fm]".bright_red()),
         };
 
-        Self { client, api_key: api_key.to_string(), api_secret: api_secret.to_string(), session_key }
+        Self { client, api_key, api_secret, session_key }
     }
 
     pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), String> {
-        let method = "track.scrobble";
-
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-
         match self
             .client
             .post(API_BASE_URL)
             .header("content-length", "0")
-            .query(&[
-                ("api_key", self.api_key.as_str()),
-                ("artist[0]", artist),
-                ("duration[0]", &total_length.to_string()),
-                ("method", method),
-                ("sk", &self.session_key),
-                ("timestamp[0]", timestamp.to_string().as_str()),
-                ("track[0]", title),
-                (
-                    "api_sig",
-                    format!(
-                        "{:x}",
-                        compute(format!(
-                            "api_key{}artist[0]{artist}duration[0]{total_length}method{method}sk{}timestamp[0]{timestamp}track[0]{title}{}",
-                            self.api_key, self.session_key, self.api_secret,
-                        )),
-                    )
-                    .as_str(),
-                ),
-            ])
+            .query(&Self::sign_query(
+                BTreeMap::from([
+                    ("api_key", self.api_key.to_string()),
+                    ("artist[0]", artist.to_string()),
+                    ("duration[0]", total_length.to_string()),
+                    ("method", "track.scrobble".to_string()),
+                    ("sk", self.session_key.to_string()),
+                    ("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs().to_string()),
+                    ("track[0]", title.to_string()),
+                ]),
+                &self.api_secret,
+            ))
             .send()
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(format!("Received status code {status_code}")),
+                status_code => Err(format!("Received status code {status_code}.")),
             },
             Err(error) => Err(error.to_string()),
         }
+    }
+
+    fn sign_query<'a>(mut query: BTreeMap<&'a str, String>, api_secret: &str) -> BTreeMap<&'a str, String> {
+        let mut string = String::new();
+
+        for (key, value) in query.iter() {
+            if *key == "format" {
+                continue;
+            }
+
+            string += format!("{key}{value}").as_str();
+        }
+
+        string += api_secret;
+        query.insert("api_sig", format!("{:x}", compute(string)));
+        query
     }
 }

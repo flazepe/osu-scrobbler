@@ -46,8 +46,8 @@ impl Scrobbler {
             config: config.scrobbler,
             last_fm: config
                 .last_fm
-                .map(|last_fm| LastfmScrobbler::new(&last_fm.username, &last_fm.password, &last_fm.api_key, &last_fm.api_secret)),
-            listenbrainz: config.listenbrainz.map(|listenbrainz| ListenBrainzScrobbler::new(&listenbrainz.user_token)),
+                .map(|last_fm| LastfmScrobbler::new(last_fm.username, last_fm.password, last_fm.api_key, last_fm.api_secret)),
+            listenbrainz: config.listenbrainz.map(|listenbrainz| ListenBrainzScrobbler::new(listenbrainz.user_token)),
             last_score: None,
         }
     }

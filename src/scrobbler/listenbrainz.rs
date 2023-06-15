@@ -17,7 +17,7 @@ struct ListenBrainzToken {
 }
 
 impl ListenBrainzScrobbler {
-    pub fn new(user_token: &str) -> Self {
+    pub fn new(user_token: String) -> Self {
         let client = Client::new();
 
         match client
@@ -33,7 +33,7 @@ impl ListenBrainzScrobbler {
             Err(_) => panic!("{} Invalid user token provided.", "[ListenBrainz]".bright_red()),
         };
 
-        Self { client, user_token: user_token.to_string() }
+        Self { client, user_token }
     }
 
     pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), String> {
@@ -61,7 +61,7 @@ impl ListenBrainzScrobbler {
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(format!("Received status code {status_code}")),
+                status_code => Err(format!("Received status code {status_code}.")),
             },
             Err(error) => Err(error.to_string()),
         }
