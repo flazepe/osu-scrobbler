@@ -15,7 +15,7 @@ pub struct Scrobbler {
     config: ScrobblerConfig,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
-    last_score: Option<Score>,
+    recent_score: Option<Score>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -48,7 +48,7 @@ impl Scrobbler {
                 .last_fm
                 .map(|last_fm| LastfmScrobbler::new(last_fm.username, last_fm.password, last_fm.api_key, last_fm.api_secret)),
             listenbrainz: config.listenbrainz.map(|listenbrainz| ListenBrainzScrobbler::new(listenbrainz.user_token)),
-            last_score: None,
+            recent_score: None,
         }
     }
 
@@ -56,7 +56,7 @@ impl Scrobbler {
         println!("{} Started!", "[Scrobbler]".bright_green());
 
         // Set the initial last score
-        self.last_score = self.get_last_score();
+        self.recent_score = self.get_recent_score();
 
         loop {
             self.poll();
@@ -65,9 +65,9 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        let Some(score) = self.get_last_score() else { return; };
+        let Some(score) = self.get_recent_score() else { return; };
 
-        if self.last_score.as_ref().map_or(true, |last_score| last_score.ended_at != score.ended_at) {
+        if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
             self.scrobble(score);
         }
     }
@@ -103,10 +103,10 @@ impl Scrobbler {
             };
         }
 
-        self.last_score = Some(score);
+        self.recent_score = Some(score);
     }
 
-    fn get_last_score(&self) -> Option<Score> {
+    fn get_recent_score(&self) -> Option<Score> {
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{}/scores/recent", self.config.user_id));
 
         if let Some(mode) = self.config.mode.as_ref() {
@@ -116,7 +116,7 @@ impl Scrobbler {
         let response = match request.send() {
             Ok(response) => response,
             Err(error) => {
-                println!("{} Could not get user's last score: {error}", "[Scrobbler]".bright_red());
+                println!("{} Could not get user's recent score: {error}", "[Scrobbler]".bright_red());
                 return None;
             },
         };
@@ -139,7 +139,7 @@ impl Scrobbler {
                 false => Some(scores.remove(0)),
             },
             Err(_) => {
-                println!("{} Could not parse response from osu! API: {text}", "[Scrobbler]".bright_red());
+                println!("{} Could not parse response text from osu! API: {text}", "[Scrobbler]".bright_red());
                 None
             },
         }
