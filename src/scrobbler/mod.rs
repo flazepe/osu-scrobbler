@@ -8,7 +8,6 @@ use crate::{
 use colored::Colorize;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
-use serde_json::from_str;
 use std::{thread::sleep, time::Duration};
 
 pub struct Scrobbler {
@@ -121,27 +120,23 @@ impl Scrobbler {
             },
         };
 
-        if response.status() == StatusCode::NOT_FOUND {
-            panic!("{} Invalid osu! user ID given.", "[Scrobbler]".bright_red());
+        let status_code = response.status();
+
+        if status_code != StatusCode::OK {
+            match status_code {
+                StatusCode::NOT_FOUND => panic!("{} Invalid osu! user ID given.", "[Scrobbler]".bright_red()),
+                _ => {
+                    println!("{} Could not get user's recent score: Received status code {status_code}.", "[Scrobbler]".bright_red());
+                    return None;
+                },
+            }
         }
 
-        let text = match response.text() {
-            Ok(text) => text,
-            Err(error) => {
-                println!("{} Could not decode response text: {error}", "[Scrobbler]".bright_red());
-                return None;
-            },
-        };
+        let Ok(mut scores) = response.json::<Vec<Score>>() else { return None; };
 
-        match from_str::<Vec<Score>>(text.as_str()) {
-            Ok(mut scores) => match scores.is_empty() {
-                true => None,
-                false => Some(scores.remove(0)),
-            },
-            Err(_) => {
-                println!("{} Could not parse response text from osu! API: {text}", "[Scrobbler]".bright_red());
-                None
-            },
+        match scores.is_empty() {
+            true => None,
+            false => Some(scores.remove(0)),
         }
     }
 }
