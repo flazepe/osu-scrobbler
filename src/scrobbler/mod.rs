@@ -113,13 +113,25 @@ impl Scrobbler {
             request = request.query(&[("mode", mode)]);
         }
 
-        let Ok(response) = request.send() else { return None; };
+        let response = match request.send() {
+            Ok(response) => response,
+            Err(error) => {
+                println!("{} Could not get user's last score: {error}", "[Scrobbler]".bright_red());
+                return None;
+            },
+        };
 
         if response.status() == StatusCode::NOT_FOUND {
             panic!("{} Invalid osu! user ID given.", "[Scrobbler]".bright_red());
         }
 
-        let Ok(text) = response.text() else { return None; };
+        let text = match response.text() {
+            Ok(text) => text,
+            Err(error) => {
+                println!("{} Could not decode response text: {error}", "[Scrobbler]".bright_red());
+                return None;
+            },
+        };
 
         match from_str::<Vec<Score>>(text.as_str()) {
             Ok(mut scores) => match scores.is_empty() {
