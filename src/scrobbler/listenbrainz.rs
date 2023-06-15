@@ -25,23 +25,16 @@ impl ListenBrainzScrobbler {
             .header("authorization", format!("Token {user_token}"))
             .send()
             .unwrap()
-            .json::<ListenBrainzToken>() {
-				Ok(token) => println!("Authenticated with ListenBrainz (username: {}).", token.user_name),
-				Err(_) => panic!("An error occurred while authenticating to ListenBrainz: Invalid user token provided"),
-			};
+            .json::<ListenBrainzToken>()
+        {
+            Ok(token) => println!("Authenticated with ListenBrainz (username: {}).", token.user_name),
+            Err(_) => panic!("An error occurred while authenticating to ListenBrainz: Invalid user token provided"),
+        };
 
-        Self {
-            client,
-            user_token: user_token.to_string(),
-        }
+        Self { client, user_token: user_token.to_string() }
     }
 
-    pub fn scrobble(
-        &self,
-        title: &str,
-        artist: &str,
-        total_length: u32,
-    ) -> Result<(), ScrobblerError> {
+    pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), ScrobblerError> {
         match self
             .client
             .post(format!("{API_BASE_URL}/submit-listens"))
@@ -66,13 +59,9 @@ impl ListenBrainzScrobbler {
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(ScrobblerError {
-                    message: format!("Scrobble request failed: Received status code {status_code}"),
-                }),
+                status_code => Err(ScrobblerError { message: format!("Scrobble request failed: Received status code {status_code}") }),
             },
-            Err(error) => Err(ScrobblerError {
-                message: error.to_string(),
-            }),
+            Err(error) => Err(ScrobblerError { message: error.to_string() }),
         }
     }
 }

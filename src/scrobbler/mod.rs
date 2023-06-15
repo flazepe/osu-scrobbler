@@ -56,17 +56,10 @@ impl Scrobbler {
 
         Self {
             config: config.scrobbler,
-            last_fm: config.last_fm.map(|last_fm| {
-                LastfmScrobbler::new(
-                    &last_fm.username,
-                    &last_fm.password,
-                    &last_fm.api_key,
-                    &last_fm.api_secret,
-                )
-            }),
-            listenbrainz: config
-                .listenbrainz
-                .map(|listenbrainz| ListenBrainzScrobbler::new(&listenbrainz.user_token)),
+            last_fm: config
+                .last_fm
+                .map(|last_fm| LastfmScrobbler::new(&last_fm.username, &last_fm.password, &last_fm.api_key, &last_fm.api_secret)),
+            listenbrainz: config.listenbrainz.map(|listenbrainz| ListenBrainzScrobbler::new(&listenbrainz.user_token)),
             last_score: None,
         }
     }
@@ -86,11 +79,7 @@ impl Scrobbler {
     fn poll(&mut self) {
         let Some(score) = self.get_last_score() else { return; };
 
-        if self
-            .last_score
-            .as_ref()
-            .map_or(true, |last_score| last_score.ended_at != score.ended_at)
-        {
+        if self.last_score.as_ref().map_or(true, |last_score| last_score.ended_at != score.ended_at) {
             self.scrobble(score);
         }
     }
@@ -115,38 +104,28 @@ impl Scrobbler {
         if let Some(last_fm) = self.last_fm.as_ref() {
             match last_fm.scrobble(title, artist, score.beatmap.total_length) {
                 Ok(_) => println!("Scrobbled to Last.fm ^"),
-                Err(error) => {
-                    println!("An error occurred while scrobbling ^ to Last.fm: {error}")
-                }
-            }
+                Err(error) => println!("An error occurred while scrobbling ^ to Last.fm: {error}"),
+            };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
             match listenbrainz.scrobble(title, artist, score.beatmap.total_length) {
                 Ok(_) => println!("Scrobbled to ListenBrainz ^"),
-                Err(error) => {
-                    println!("An error occurred while scrobbling ^ to ListenBrainz: {error}")
-                }
-            }
+                Err(error) => println!("An error occurred while scrobbling ^ to ListenBrainz: {error}"),
+            };
         }
 
         self.last_score = Some(score);
     }
 
     fn get_last_score(&self) -> Option<Score> {
-        let mut request = Client::new().get(format!(
-            "https://osu.ppy.sh/users/{}/scores/recent",
-            self.config.user_id,
-        ));
+        let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{}/scores/recent", self.config.user_id));
 
         if let Some(mode) = self.config.mode.as_ref() {
-            request = request.query(&[("mode", mode)])
+            request = request.query(&[("mode", mode)]);
         }
 
-        match request
-            .send()
-            .and_then(|response| response.json::<Vec<Score>>())
-        {
+        match request.send().and_then(|response| response.json::<Vec<Score>>()) {
             Ok(mut scores) => match scores.is_empty() {
                 true => None,
                 false => Some(scores.remove(0)),

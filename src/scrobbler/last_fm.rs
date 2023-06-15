@@ -42,13 +42,8 @@ impl LastfmScrobbler {
                 ("username", username),
                 (
                     "api_sig",
-                    format!(
-                        "{:x}",
-                        compute(format!(
-                            "api_key{api_key}method{method}password{password}username{username}{api_secret}",
-                        )),
-                    )
-                    .as_str(),
+                    format!("{:x}", compute(format!("api_key{api_key}method{method}password{password}username{username}{api_secret}")))
+                        .as_str(),
                 ),
             ])
             .send()
@@ -62,28 +57,16 @@ impl LastfmScrobbler {
             Err(_) => panic!("An error occurred while authenticating to Last.fm: Invalid credentials provided"),
         };
 
-        Self {
-            client,
-            api_key: api_key.to_string(),
-            api_secret: api_secret.to_string(),
-            session_key,
-        }
+        Self { client, api_key: api_key.to_string(), api_secret: api_secret.to_string(), session_key }
     }
 
-    pub fn scrobble(
-        &self,
-        title: &str,
-        artist: &str,
-        total_length: u32,
-    ) -> Result<(), ScrobblerError> {
+    pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), ScrobblerError> {
         let method = "track.scrobble";
 
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
 
-        match self.client
+        match self
+            .client
             .post(API_BASE_URL)
             .header("content-length", "0")
             .query(&[
@@ -100,9 +83,7 @@ impl LastfmScrobbler {
                         "{:x}",
                         compute(format!(
                             "api_key{}artist[0]{artist}duration[0]{total_length}method{method}sk{}timestamp[0]{timestamp}track[0]{title}{}",
-                            self.api_key,
-                            self.session_key,
-                            self.api_secret,
+                            self.api_key, self.session_key, self.api_secret,
                         )),
                     )
                     .as_str(),
@@ -112,13 +93,9 @@ impl LastfmScrobbler {
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(ScrobblerError {
-                    message: format!("Scrobble request failed: Received status code {status_code}"),
-                }),
+                status_code => Err(ScrobblerError { message: format!("Scrobble request failed: Received status code {status_code}") }),
             },
-            Err(error) => Err(ScrobblerError {
-                message: error.to_string(),
-            }),
+            Err(error) => Err(ScrobblerError { message: error.to_string() }),
         }
     }
 }
