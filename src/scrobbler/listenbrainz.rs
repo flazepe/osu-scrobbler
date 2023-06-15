@@ -1,3 +1,4 @@
+use colored::Colorize;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
 use serde_json::json;
@@ -26,8 +27,10 @@ impl ListenBrainzScrobbler {
             .unwrap()
             .json::<ListenBrainzToken>()
         {
-            Ok(token) => println!("Authenticated with ListenBrainz (username: {}).", token.user_name),
-            Err(_) => panic!("An error occurred while authenticating to ListenBrainz: Invalid user token provided"),
+            Ok(token) => {
+                println!("{} Successfully authenticated with username {}.", "[ListenBrainz]".bright_green(), token.user_name.bright_blue())
+            },
+            Err(_) => panic!("{} Invalid user token provided.", "[ListenBrainz]".bright_red()),
         };
 
         Self { client, user_token: user_token.to_string() }
@@ -58,7 +61,7 @@ impl ListenBrainzScrobbler {
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(format!("Scrobble request failed: Received status code {status_code}")),
+                status_code => Err(format!("Received status code {status_code}")),
             },
             Err(error) => Err(error.to_string()),
         }

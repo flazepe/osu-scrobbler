@@ -5,8 +5,10 @@ use crate::{
     config::{get_config, ScrobblerConfig},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
-use reqwest::blocking::Client;
+use colored::Colorize;
+use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
+use serde_json::from_str;
 use std::{thread::sleep, time::Duration};
 
 pub struct Scrobbler {
@@ -51,7 +53,7 @@ impl Scrobbler {
     }
 
     pub fn start(&mut self) {
-        println!("Started osu-scrobbler!");
+        println!("{} Started!", "[Scrobbler]".bright_green());
 
         // Set the initial last score
         self.last_score = self.get_last_score();
@@ -85,19 +87,19 @@ impl Scrobbler {
             false => &score.beatmapset.artist,
         };
 
-        println!("New score found: {artist} - {title}");
+        println!("{} New score found: {}", "[Scrobbler]".bright_green(), format!("{artist} - {title}").bright_blue());
 
         if let Some(last_fm) = self.last_fm.as_ref() {
             match last_fm.scrobble(title, artist, score.beatmap.total_length) {
-                Ok(_) => println!("Scrobbled to Last.fm ^"),
-                Err(error) => println!("An error occurred while scrobbling ^ to Last.fm: {error}"),
+                Ok(_) => println!("\t{} Successfully scrobbled score.", "[Last.fm]".bright_green()),
+                Err(error) => println!("\t{} {error}", "[Last.fm]".bright_red()),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
             match listenbrainz.scrobble(title, artist, score.beatmap.total_length) {
-                Ok(_) => println!("Scrobbled to ListenBrainz ^"),
-                Err(error) => println!("An error occurred while scrobbling ^ to ListenBrainz: {error}"),
+                Ok(_) => println!("\t{} Successfully scrobbled score.", "[ListenBrainz]".bright_green()),
+                Err(error) => println!("\t{} {error}", "[ListenBrainz]".bright_red()),
             };
         }
 
@@ -111,12 +113,23 @@ impl Scrobbler {
             request = request.query(&[("mode", mode)]);
         }
 
-        match request.send().and_then(|response| response.json::<Vec<Score>>()) {
+        let Ok(response) = request.send() else { return None; };
+
+        if response.status() == StatusCode::NOT_FOUND {
+            panic!("{} Invalid osu! user ID given.", "[Scrobbler]".bright_red());
+        }
+
+        let Ok(text) = response.text() else { return None; };
+
+        match from_str::<Vec<Score>>(text.as_str()) {
             Ok(mut scores) => match scores.is_empty() {
                 true => None,
                 false => Some(scores.remove(0)),
             },
-            Err(_) => panic!("Invalid osu! user ID given."),
+            Err(_) => {
+                println!("{} Could not parse response from osu! API: {text}", "[Scrobbler]".bright_red());
+                None
+            },
         }
     }
 }

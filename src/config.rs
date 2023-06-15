@@ -1,3 +1,4 @@
+use colored::Colorize;
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 use toml::from_str;
@@ -42,9 +43,9 @@ pub struct ListenBrainzConfig {
 pub fn get_config() -> Config {
     match from_str(&match read_to_string("config.toml") {
         Ok(contents) => contents,
-        Err(_) => panic!("No config file found!"),
+        Err(_) => panic!("{} No config file found!", "[Config]".bright_red()),
     }) {
         Ok(config) => config,
-        Err(error) => panic!("An error occurred while reading config: {error}"),
+        Err(error) => panic!("{} {error}", "[Config]".bright_red()),
     }
 }

@@ -1,3 +1,4 @@
+use colored::Colorize;
 use md5::compute;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
@@ -50,10 +51,10 @@ impl LastfmScrobbler {
             .json::<LastfmSession>()
         {
             Ok(session) => {
-                println!("Authenticated with Last.fm (username: {}).", session.session.name);
+                println!("{} Successfully authenticated with username {}.", "[Last.fm]".bright_green(), session.session.name.bright_blue());
                 session.session.key
             },
-            Err(_) => panic!("An error occurred while authenticating to Last.fm: Invalid credentials provided"),
+            Err(_) => panic!("{} Invalid credentials provided.", "[Last.fm]".bright_red()),
         };
 
         Self { client, api_key: api_key.to_string(), api_secret: api_secret.to_string(), session_key }
@@ -92,7 +93,7 @@ impl LastfmScrobbler {
         {
             Ok(response) => match response.status() {
                 StatusCode::OK => Ok(()),
-                status_code => Err(format!("Scrobble request failed: Received status code {status_code}")),
+                status_code => Err(format!("Received status code {status_code}")),
             },
             Err(error) => Err(error.to_string()),
         }
