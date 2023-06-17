@@ -34,16 +34,14 @@ impl LastfmScrobbler {
         let session_key = match client
             .post(API_BASE_URL)
             .header("content-length", "0")
-            .query(&Self::sign_query(
-                BTreeMap::from([
-                    ("format", "json".to_string()),
-                    ("api_key", api_key.to_string()),
-                    ("method", "auth.getMobileSession".to_string()),
-                    ("password", password),
-                    ("username", username),
-                ]),
-                &api_secret,
-            ))
+            .query(
+                &LastfmQuery::new()
+                    .insert("api_key", &api_key)
+                    .insert("method", "auth.getMobileSession")
+                    .insert("password", password)
+                    .insert("username", username)
+                    .sign(&api_secret),
+            )
             .send()
             .unwrap()
             .json::<LastfmSession>()
@@ -63,18 +61,17 @@ impl LastfmScrobbler {
             .client
             .post(API_BASE_URL)
             .header("content-length", "0")
-            .query(&Self::sign_query(
-                BTreeMap::from([
-                    ("api_key", self.api_key.to_string()),
-                    ("artist[0]", artist.to_string()),
-                    ("duration[0]", total_length.to_string()),
-                    ("method", "track.scrobble".to_string()),
-                    ("sk", self.session_key.to_string()),
-                    ("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs().to_string()),
-                    ("track[0]", title.to_string()),
-                ]),
-                &self.api_secret,
-            ))
+            .query(
+                &LastfmQuery::new()
+                    .insert("api_key", &self.api_key)
+                    .insert("artist[0]", artist)
+                    .insert("duration[0]", total_length)
+                    .insert("method", "track.scrobble")
+                    .insert("sk", &self.session_key)
+                    .insert("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs())
+                    .insert("track[0]", title)
+                    .sign(&self.api_secret),
+            )
             .send()
         {
             Ok(response) => match response.status() {
@@ -84,20 +81,28 @@ impl LastfmScrobbler {
             Err(error) => Err(error.to_string()),
         }
     }
+}
 
-    fn sign_query<'a>(mut query: BTreeMap<&'a str, String>, api_secret: &str) -> BTreeMap<&'a str, String> {
-        let mut string = String::new();
+struct LastfmQuery {
+    query: BTreeMap<String, String>,
+}
 
-        for (key, value) in query.iter() {
-            if *key == "format" {
-                continue;
-            }
+impl LastfmQuery {
+    pub fn new() -> Self {
+        Self { query: BTreeMap::new() }
+    }
 
-            string += format!("{key}{value}").as_str();
-        }
+    pub fn insert<T: ToString, U: ToString>(mut self, key: T, value: U) -> Self {
+        self.query.insert(key.to_string(), value.to_string());
+        self
+    }
 
-        string += api_secret;
-        query.insert("api_sig", format!("{:x}", compute(string)));
-        query
+    pub fn sign<T: ToString>(self, api_secret: T) -> BTreeMap<String, String> {
+        let api_sig = format!(
+            "{:x}",
+            compute(self.query.iter().map(|(key, value)| format!("{key}{value}")).collect::<String>() + &api_secret.to_string()),
+        );
+
+        self.insert("api_sig", api_sig).insert("format", "json").query
     }
 }
