@@ -64,10 +64,10 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        let Some(score) = self.get_recent_score() else { return; };
-
-        if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
-            self.scrobble(score);
+        if let Some(score) = self.get_recent_score() {
+            if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
+                self.scrobble(score);
+            }
         }
     }
 
@@ -76,14 +76,16 @@ impl Scrobbler {
             return;
         }
 
-        let title = match self.config.use_original_metadata {
-            true => &score.beatmapset.title_unicode,
-            false => &score.beatmapset.title,
+        let title = if self.config.use_original_metadata {
+            &score.beatmapset.title_unicode
+        } else {
+            &score.beatmapset.title
         };
 
-        let artist = match self.config.use_original_metadata {
-            true => &score.beatmapset.artist_unicode,
-            false => &score.beatmapset.artist,
+        let artist = if self.config.use_original_metadata {
+            &score.beatmapset.artist_unicode
+        } else {
+            &score.beatmapset.artist
         };
 
         println!("{} New score found: {}", "[Scrobbler]".bright_green(), format!("{artist} - {title}").bright_blue());
@@ -91,15 +93,15 @@ impl Scrobbler {
         if let Some(last_fm) = self.last_fm.as_ref() {
             match last_fm.scrobble(title, artist, score.beatmap.total_length) {
                 Ok(_) => println!("\t{} Successfully scrobbled score.", "[Last.fm]".bright_green()),
-                Err(error) => println!("\t{} {error}", "[Last.fm]".bright_red()),
-            };
+                Err(error) => println!("\t{} Error while scrobbling score: {}", "[Last.fm]".bright_red(), error),
+            }
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
             match listenbrainz.scrobble(title, artist, score.beatmap.total_length) {
                 Ok(_) => println!("\t{} Successfully scrobbled score.", "[ListenBrainz]".bright_green()),
-                Err(error) => println!("\t{} {error}", "[ListenBrainz]".bright_red()),
-            };
+                Err(error) => println!("\t{} Error while scrobbling score: {}", "[ListenBrainz]".bright_red(), error),
+            }
         }
 
         self.recent_score = Some(score);
@@ -115,9 +117,9 @@ impl Scrobbler {
         let response = match request.send() {
             Ok(response) => response,
             Err(error) => {
-                println!("{} Could not get user's recent score: {error}", "[Scrobbler]".bright_red());
+                println!("{} Error while getting user's recent score: {}", "[Scrobbler]".bright_red(), error);
                 return None;
-            },
+            }
         };
 
         let status_code = response.status();
@@ -126,17 +128,20 @@ impl Scrobbler {
             match status_code {
                 StatusCode::NOT_FOUND => panic!("{} Invalid osu! user ID given.", "[Scrobbler]".bright_red()),
                 _ => {
-                    println!("{} Could not get user's recent score: Received status code {status_code}.", "[Scrobbler]".bright_red());
+                    println!("{} Error while getting user's recent score: Received status code {}.", "[Scrobbler]".bright_red(), status_code);
                     return None;
-                },
+                }
             }
         }
 
-        let Ok(mut scores) = response.json::<Vec<Score>>() else { return None; };
+        let scores = match response.json::<Vec<Score>>() {
+            Ok(scores) => scores,
+            Err(error) => {
+                println!("{} Error while parsing scores: {}", "[Scrobbler]".bright_red(), error);
+                return None;
+            }
+        };
 
-        match scores.is_empty() {
-            true => None,
-            false => Some(scores.remove(0)),
-        }
+        scores.into_iter().next()
     }
 }
