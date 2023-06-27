@@ -28,10 +28,11 @@ struct LastfmSessionData {
 }
 
 impl LastfmScrobbler {
-    pub fn new(username: String, password: String, api_key: String, api_secret: String) -> Self {
+    /// create a new LastfmScrobbler instance.
+    pub fn new(username: String, password: String, api_key: String, api_secret: String) -> Result<Self, String> {
         let client = Client::new();
 
-        let session_key = match client
+        let session_key = client
             .post(API_BASE_URL)
             .header("content-length", "0")
             .query(
@@ -43,21 +44,29 @@ impl LastfmScrobbler {
                     .sign(&api_secret),
             )
             .send()
-            .unwrap()
+            .map_err(|err| format!("Failed to authenticate with Last.fm: {}", err))?
             .json::<LastfmSession>()
-        {
-            Ok(session) => {
-                println!("{} Successfully authenticated with username {}.", "[Last.fm]".bright_green(), session.session.name.bright_blue());
+            .map_err(|err| format!("Failed to parse Last.fm session: {}", err))
+            .map(|session| {
+                println!(
+                    "{} Successfully authenticated with username {}.",
+                    "[Last.fm]".bright_green(),
+                    session.session.name.bright_blue()
+                );
                 session.session.key
-            },
-            Err(_) => panic!("{} Invalid credentials provided.", "[Last.fm]".bright_red()),
-        };
+            })?;
 
-        Self { client, api_key, api_secret, session_key }
+        Ok(Self { client, api_key, api_secret, session_key })
     }
 
+    /// scrobble a track to Last.fm.
     pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<(), String> {
-        match self
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|err| format!("Failed to get timestamp: {}", err))?
+            .as_secs();
+
+        let response = self
             .client
             .post(API_BASE_URL)
             .header("content-length", "0")
@@ -68,17 +77,16 @@ impl LastfmScrobbler {
                     .insert("duration[0]", total_length)
                     .insert("method", "track.scrobble")
                     .insert("sk", &self.session_key)
-                    .insert("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs())
+                    .insert("timestamp[0]", timestamp)
                     .insert("track[0]", title)
                     .sign(&self.api_secret),
             )
             .send()
-        {
-            Ok(response) => match response.status() {
-                StatusCode::OK => Ok(()),
-                status_code => Err(format!("Received status code {status_code}.")),
-            },
-            Err(error) => Err(error.to_string()),
+            .map_err(|err| format!("Failed to send scrobble request: {}", err))?;
+
+        match response.status() {
+            StatusCode::OK => Ok(()),
+            status_code => Err(format!("Received status code {}.", status_code)),
         }
     }
 }
@@ -88,20 +96,26 @@ struct LastfmQuery {
 }
 
 impl LastfmQuery {
+    /// create a new LastfmQuery instance.
     pub fn new() -> Self {
         Self { query: BTreeMap::new() }
     }
 
+    /// insert a key-value pair into the query parameters.
     pub fn insert<T: ToString, U: ToString>(mut self, key: T, value: U) -> Self {
         self.query.insert(key.to_string(), value.to_string());
         self
     }
 
+    /// sign the query parameters using the API secret.
     pub fn sign<T: ToString>(self, api_secret: T) -> BTreeMap<String, String> {
-        let api_sig = format!(
-            "{:x}",
-            compute(self.query.iter().map(|(key, value)| format!("{key}{value}")).collect::<String>() + &api_secret.to_string()),
-        );
+        let api_sig = format!("{:x}", compute(
+            self.query
+                .iter()
+                .map(|(key, value)| format!("{}{}", key, value))
+                .collect::<String>()
+                + &api_secret.to_string(),
+        ));
 
         self.insert("api_sig", api_sig).insert("format", "json").query
     }
