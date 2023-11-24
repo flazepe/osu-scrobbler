@@ -16,6 +16,7 @@ pub struct Scrobbler {
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
+    cooldown_secs: u64,
 }
 
 impl Scrobbler {
@@ -52,6 +53,7 @@ impl Scrobbler {
                 )
             }),
             recent_score: None,
+            cooldown_secs: 0,
         })
     }
 
@@ -59,16 +61,33 @@ impl Scrobbler {
         log_success("Scrobbler", "Started!");
 
         // Set the initial last score
-        self.recent_score = get_recent_score(self.config.user_id, &self.config.mode);
+        self.recent_score = get_recent_score(self.config.user_id, &self.config.mode).unwrap_or(None);
 
         loop {
+            self.cooldown_secs = 0;
             self.poll();
-            sleep(Duration::from_secs(5));
+            self.cooldown_secs += 5;
+            sleep(Duration::from_secs(self.cooldown_secs));
         }
     }
 
     fn poll(&mut self) {
-        let Some(score) = get_recent_score(self.config.user_id, &self.config.mode) else { return };
+        let Some(score) = get_recent_score(self.config.user_id, &self.config.mode).unwrap_or_else(|error| {
+            // Exit on invalid user ID
+            if error.to_string().contains("404") {
+                log_error("Scrobbler", "Invalid osu! user ID given.");
+                panic!();
+            }
+
+            log_error("Scrobbler", error);
+
+            // Increase cooldown by 10s since API returned an error
+            self.cooldown_secs += 10;
+
+            None
+        }) else {
+            return;
+        };
 
         if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
             self.scrobble(score);
