@@ -3,11 +3,12 @@ mod listenbrainz;
 
 use crate::{
     config::{get_config, ScrobblerConfig},
+    logger::{log_error, log_file, log_success},
+    scores::{get_recent_score, Score},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
+use anyhow::Result;
 use colored::Colorize;
-use reqwest::{blocking::Client, StatusCode};
-use serde::Deserialize;
 use std::{thread::sleep, time::Duration};
 
 pub struct Scrobbler {
@@ -17,45 +18,48 @@ pub struct Scrobbler {
     recent_score: Option<Score>,
 }
 
-#[derive(Clone, Deserialize)]
-pub struct Score {
-    pub ended_at: String,
-    pub beatmap: Beatmap,
-    pub beatmapset: Beatmapset,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Beatmap {
-    pub total_length: u32,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Beatmapset {
-    pub artist: String,
-    pub artist_unicode: String,
-    pub title: String,
-    pub title_unicode: String,
-}
-
 impl Scrobbler {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let config = get_config();
 
-        Self {
+        Ok(Self {
             config: config.scrobbler,
-            last_fm: config
-                .last_fm
-                .map(|last_fm| LastfmScrobbler::new(last_fm.username, last_fm.password, last_fm.api_key, last_fm.api_secret)),
-            listenbrainz: config.listenbrainz.map(|listenbrainz| ListenBrainzScrobbler::new(listenbrainz.user_token)),
+            last_fm: config.last_fm.and_then(|config| {
+                LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret).map_or_else(
+                    |_| {
+                        log_error("Last.fm", "Invalid credentials provided.");
+                        None
+                    },
+                    |scrobbler| {
+                        log_success("Last.fm", format!("Successfully authenticated with username {}.", scrobbler.username.bright_blue()));
+                        Some(scrobbler)
+                    },
+                )
+            }),
+            listenbrainz: config.listenbrainz.and_then(|config| {
+                ListenBrainzScrobbler::new(config.user_token).map_or_else(
+                    |_| {
+                        log_error("ListenBrainz", "Invalid user token provided.");
+                        None
+                    },
+                    |scrobbler| {
+                        log_success(
+                            "ListenBrainz",
+                            format!("Successfully authenticated with username {}.", scrobbler.username.bright_blue()),
+                        );
+                        Some(scrobbler)
+                    },
+                )
+            }),
             recent_score: None,
-        }
+        })
     }
 
     pub fn start(&mut self) {
-        println!("{} Started!", "[Scrobbler]".bright_green());
+        log_success("Scrobbler", "Started!");
 
         // Set the initial last score
-        self.recent_score = self.get_recent_score();
+        self.recent_score = get_recent_score(self.config.user_id, &self.config.mode);
 
         loop {
             self.poll();
@@ -64,7 +68,7 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        let Some(score) = self.get_recent_score() else { return; };
+        let Some(score) = get_recent_score(self.config.user_id, &self.config.mode) else { return };
 
         if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
             self.scrobble(score);
@@ -72,71 +76,40 @@ impl Scrobbler {
     }
 
     fn scrobble(&mut self, score: Score) {
-        if score.beatmap.total_length < self.config.min_beatmap_length_secs {
+        if score.beatmap.total_length < self.config.min_beatmap_length_secs.unwrap_or(60) {
             return;
         }
 
-        let title = match self.config.use_original_metadata {
+        let title = match self.config.use_original_metadata.unwrap_or(true) {
             true => &score.beatmapset.title_unicode,
             false => &score.beatmapset.title,
         };
 
-        let artist = match self.config.use_original_metadata {
+        let artist = match self.config.use_original_metadata.unwrap_or(true) {
             true => &score.beatmapset.artist_unicode,
             false => &score.beatmapset.artist,
         };
 
-        println!("{} New score found: {}", "[Scrobbler]".bright_green(), format!("{artist} - {title}").bright_blue());
+        log_success("Scrobbler", format!("New score found: {}", format!("{artist} - {title}").bright_blue()));
+
+        if self.config.log_scrobbles.unwrap_or(false) {
+            log_file(format!("[{} UTC] {artist} - {title}", score.ended_at));
+        }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
             match last_fm.scrobble(title, artist, score.beatmap.total_length) {
-                Ok(_) => println!("\t{} Successfully scrobbled score.", "[Last.fm]".bright_green()),
-                Err(error) => println!("\t{} {error}", "[Last.fm]".bright_red()),
+                Ok(_) => log_success("\tLast.fm", "Successfully scrobbled score."),
+                Err(error) => log_error("\tLast.fm", error),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
             match listenbrainz.scrobble(title, artist, score.beatmap.total_length) {
-                Ok(_) => println!("\t{} Successfully scrobbled score.", "[ListenBrainz]".bright_green()),
-                Err(error) => println!("\t{} {error}", "[ListenBrainz]".bright_red()),
+                Ok(_) => log_success("\tListenBrainz", "Successfully scrobbled score."),
+                Err(error) => log_error("\tListenBrainz", error),
             };
         }
 
         self.recent_score = Some(score);
-    }
-
-    fn get_recent_score(&self) -> Option<Score> {
-        let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{}/scores/recent", self.config.user_id));
-
-        if let Some(mode) = self.config.mode.as_ref() {
-            request = request.query(&[("mode", mode)]);
-        }
-
-        let response = match request.send() {
-            Ok(response) => response,
-            Err(error) => {
-                println!("{} Could not get user's recent score: {error}", "[Scrobbler]".bright_red());
-                return None;
-            },
-        };
-
-        let status_code = response.status();
-
-        if status_code != StatusCode::OK {
-            match status_code {
-                StatusCode::NOT_FOUND => panic!("{} Invalid osu! user ID given.", "[Scrobbler]".bright_red()),
-                _ => {
-                    println!("{} Could not get user's recent score: Received status code {status_code}.", "[Scrobbler]".bright_red());
-                    return None;
-                },
-            }
-        }
-
-        let Ok(mut scores) = response.json::<Vec<Score>>() else { return None; };
-
-        match scores.is_empty() {
-            true => None,
-            false => Some(scores.remove(0)),
-        }
     }
 }

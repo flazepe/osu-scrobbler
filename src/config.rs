@@ -1,4 +1,4 @@
-use colored::Colorize;
+use crate::logger::log_error;
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 use toml::from_str;
@@ -14,8 +14,9 @@ pub struct Config {
 pub struct ScrobblerConfig {
     pub user_id: u64,
     pub mode: Option<Mode>,
-    pub use_original_metadata: bool,
-    pub min_beatmap_length_secs: u32,
+    pub use_original_metadata: Option<bool>,
+    pub min_beatmap_length_secs: Option<u32>,
+    pub log_scrobbles: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -41,11 +42,12 @@ pub struct ListenBrainzConfig {
 }
 
 pub fn get_config() -> Config {
-    match from_str(&match read_to_string("config.toml") {
-        Ok(contents) => contents,
-        Err(_) => panic!("{} No config file found!", "[Config]".bright_red()),
-    }) {
-        Ok(config) => config,
-        Err(error) => panic!("{} {error}", "[Config]".bright_red()),
-    }
+    from_str(&read_to_string("config.toml").unwrap_or_else(|_| {
+        log_error("Config", "No config file found.");
+        panic!();
+    }))
+    .unwrap_or_else(|error| {
+        log_error("Config", format!("Error parsing config file: {error}"));
+        panic!();
+    })
 }
