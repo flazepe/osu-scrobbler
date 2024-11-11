@@ -1,4 +1,4 @@
-use crate::logger::log_error;
+use crate::exit;
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 use toml::from_str;
@@ -43,11 +43,9 @@ pub struct ListenBrainzConfig {
 
 pub fn get_config() -> Config {
     from_str(&read_to_string("config.toml").unwrap_or_else(|_| {
-        log_error("Config", "No config file found.");
-        panic!();
+        exit!("Config", "No config file found.");
     }))
     .unwrap_or_else(|error| {
-        log_error("Config", format!("Error parsing config file: {error}"));
-        panic!();
+        exit!("Config", format!("Error parsing config file: {error}"));
     })
 }

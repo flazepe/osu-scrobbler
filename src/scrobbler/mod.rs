@@ -3,6 +3,7 @@ mod listenbrainz;
 
 use crate::{
     config::{get_config, ScrobblerConfig},
+    exit,
     logger::{log_error, log_file, log_success},
     scores::{get_recent_score, Score},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
@@ -28,8 +29,7 @@ impl Scrobbler {
             last_fm: config.last_fm.and_then(|config| {
                 LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret).map_or_else(
                     |_| {
-                        log_error("Last.fm", "Invalid credentials provided.");
-                        None
+                        exit!("Last.fm", "Invalid credentials provided.");
                     },
                     |scrobbler| {
                         log_success("Last.fm", format!("Successfully authenticated with username {}.", scrobbler.username.bright_blue()));
@@ -40,8 +40,7 @@ impl Scrobbler {
             listenbrainz: config.listenbrainz.and_then(|config| {
                 ListenBrainzScrobbler::new(config.user_token).map_or_else(
                     |_| {
-                        log_error("ListenBrainz", "Invalid user token provided.");
-                        None
+                        exit!("ListenBrainz", "Invalid user token provided.");
                     },
                     |scrobbler| {
                         log_success(
@@ -75,8 +74,7 @@ impl Scrobbler {
         let Some(score) = get_recent_score(self.config.user_id, &self.config.mode).unwrap_or_else(|error| {
             // Exit on invalid user ID
             if error.to_string().contains("404") {
-                log_error("Scrobbler", "Invalid osu! user ID given.");
-                panic!();
+                exit!("Scrobbler", "Invalid osu! user ID given.");
             }
 
             log_error("Scrobbler", error);
@@ -99,15 +97,9 @@ impl Scrobbler {
             return;
         }
 
-        let title = match self.config.use_original_metadata.unwrap_or(true) {
-            true => &score.beatmapset.title_unicode,
-            false => &score.beatmapset.title,
-        };
-
-        let artist = match self.config.use_original_metadata.unwrap_or(true) {
-            true => &score.beatmapset.artist_unicode,
-            false => &score.beatmapset.artist,
-        };
+        let use_original_metadata = self.config.use_original_metadata.unwrap_or(true);
+        let title = if use_original_metadata { &score.beatmapset.title_unicode } else { &score.beatmapset.title };
+        let artist = if use_original_metadata { &score.beatmapset.artist_unicode } else { &score.beatmapset.artist };
 
         log_success("Scrobbler", format!("New score found: {}", format!("{artist} - {title}").bright_blue()));
 
