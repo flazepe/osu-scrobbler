@@ -50,7 +50,7 @@ impl LastfmScrobbler {
         Ok(Self { client, api_key, api_secret, session_key: session.key, username: session.username })
     }
 
-    pub fn scrobble(&self, title: &str, artist: &str, total_length: u32) -> Result<()> {
+    pub fn scrobble(&self, artist: &str, title: &str, total_length: u32) -> Result<()> {
         match self
             .client
             .post(API_BASE_URL)
@@ -60,8 +60,8 @@ impl LastfmScrobbler {
                     .insert("api_key", &self.api_key)
                     .insert("sk", &self.session_key)
                     .insert("method", "track.scrobble")
-                    .insert("track[0]", title)
                     .insert("artist[0]", artist)
+                    .insert("track[0]", title)
                     .insert("duration[0]", total_length)
                     .insert("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
                     .sign(&self.api_secret),

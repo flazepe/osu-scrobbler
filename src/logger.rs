@@ -2,25 +2,11 @@ use colored::Colorize;
 use std::{fmt::Display, fs::OpenOptions, io::Write};
 
 pub fn log_error<T: Display>(tag: &str, message: T) {
-    println!(
-        "{} {message}",
-        match tag.starts_with('\t') {
-            true => format!("\t[{}]", tag.trim()),
-            false => format!("[{tag}]"),
-        }
-        .bright_red(),
-    );
+    println!("{} {message}", if tag.starts_with('\t') { format!("\t[{}]", tag.trim()) } else { format!("[{tag}]") }.bright_red());
 }
 
 pub fn log_success<T: Display>(tag: &str, message: T) {
-    println!(
-        "{} {message}",
-        match tag.starts_with('\t') {
-            true => format!("\t[{}]", tag.trim()),
-            false => format!("[{tag}]"),
-        }
-        .bright_green(),
-    );
+    println!("{} {message}", if tag.starts_with('\t') { format!("\t[{}]", tag.trim()) } else { format!("[{tag}]") }.bright_green());
 }
 
 pub fn log_file<T: Display>(message: T) {

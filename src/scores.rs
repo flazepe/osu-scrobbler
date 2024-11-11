@@ -38,13 +38,14 @@ pub fn get_recent_score(user_id: u64, mode: &Option<Mode>) -> Result<Option<Scor
     let status_code = response.status();
 
     if status_code != StatusCode::OK {
-        bail!("Could not get user's recent score: Received status code {status_code}.");
+        bail!("Could not get user's recent score. Received status code: {status_code}");
     }
 
     let Ok(mut scores) = response.json::<Vec<Score>>() else { return Ok(None) };
 
-    match scores.is_empty() {
-        true => Ok(None),
-        false => Ok(Some(scores.remove(0))),
+    if scores.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(scores.remove(0)))
     }
 }

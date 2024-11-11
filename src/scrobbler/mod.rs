@@ -98,8 +98,8 @@ impl Scrobbler {
         }
 
         let use_original_metadata = self.config.use_original_metadata.unwrap_or(true);
-        let title = if use_original_metadata { &score.beatmapset.title_unicode } else { &score.beatmapset.title };
         let artist = if use_original_metadata { &score.beatmapset.artist_unicode } else { &score.beatmapset.artist };
+        let title = if use_original_metadata { &score.beatmapset.title_unicode } else { &score.beatmapset.title };
 
         log_success("Scrobbler", format!("New score found: {}", format!("{artist} - {title}").bright_blue()));
 
@@ -108,14 +108,14 @@ impl Scrobbler {
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
-            match last_fm.scrobble(title, artist, score.beatmap.total_length) {
+            match last_fm.scrobble(artist, title, score.beatmap.total_length) {
                 Ok(_) => log_success("\tLast.fm", "Successfully scrobbled score."),
                 Err(error) => log_error("\tLast.fm", error),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-            match listenbrainz.scrobble(title, artist, score.beatmap.total_length) {
+            match listenbrainz.scrobble(artist, title, score.beatmap.total_length) {
                 Ok(_) => log_success("\tListenBrainz", "Successfully scrobbled score."),
                 Err(error) => log_error("\tListenBrainz", error),
             };

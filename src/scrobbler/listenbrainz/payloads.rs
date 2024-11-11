@@ -1,5 +1,8 @@
 use serde::Serialize;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    fmt::Display,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Serialize)]
 pub struct Listens {
@@ -20,12 +23,12 @@ pub struct Listen {
 }
 
 impl Listen {
-    pub fn new<T: ToString, U: ToString>(title: T, artist: U, duration: u32) -> Self {
+    pub fn new<T: Display, U: Display>(artist_name: T, track_name: U, duration: u32) -> Self {
         Self {
             listened_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
             track_metadata: TrackMetadata::new(
-                title,
-                artist,
+                artist_name,
+                track_name,
                 TrackAdditionalInfo::new(
                     "osu!",
                     "osu-scrobbler (github.com/flazepe/osu-scrobbler)",
@@ -45,8 +48,8 @@ pub struct TrackMetadata {
 }
 
 impl TrackMetadata {
-    pub fn new<T: ToString, U: ToString>(track_name: T, track_artist: U, additional_info: TrackAdditionalInfo) -> Self {
-        Self { track_name: track_name.to_string(), artist_name: track_artist.to_string(), additional_info }
+    pub fn new<T: Display, U: Display>(artist_name: T, track_name: U, additional_info: TrackAdditionalInfo) -> Self {
+        Self { track_name: track_name.to_string(), artist_name: artist_name.to_string(), additional_info }
     }
 }
 
