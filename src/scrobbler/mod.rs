@@ -8,7 +8,6 @@ use crate::{
     scores::{get_recent_score, Score},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
-use anyhow::Result;
 use colored::Colorize;
 use std::{thread::sleep, time::Duration};
 
@@ -21,16 +20,20 @@ pub struct Scrobbler {
 }
 
 impl Scrobbler {
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Self {
         let config = get_config();
 
-        Ok(Self {
+        if config.last_fm.is_none() && config.listenbrainz.is_none() {
+            exit!("Scrobbler", "Please provide config for either Last.fm or ListenBrainz.");
+        }
+
+        Self {
             config: config.scrobbler,
             last_fm: config.last_fm.map(|config| LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret)),
             listenbrainz: config.listenbrainz.map(|config| ListenBrainzScrobbler::new(config.user_token)),
             recent_score: None,
             cooldown_secs: 0,
-        })
+        }
     }
 
     pub fn start(&mut self) {

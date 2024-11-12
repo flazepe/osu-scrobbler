@@ -7,7 +7,7 @@ use anyhow::Result;
 use scrobbler::Scrobbler;
 
 fn main() -> Result<()> {
-    Scrobbler::new()?.start();
+    Scrobbler::new().start();
     Ok(())
 }
 
