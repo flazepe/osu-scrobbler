@@ -95,7 +95,7 @@ impl Scrobbler {
         log_success("Scrobbler", format!("New score found: {}{redirected_text} - {}", artist.bright_blue(), title.bright_blue()));
 
         if self.config.log_scrobbles.unwrap_or(false) {
-            log_file(format!("[{} UTC] {artist} - {title}", score.ended_at));
+            log_file(format!("[{}] {artist} - {title}", score.ended_at));
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
