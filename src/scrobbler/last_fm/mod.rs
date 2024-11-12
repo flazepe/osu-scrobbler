@@ -1,6 +1,8 @@
 mod queries;
 
+use crate::{exit, logger::log_success};
 use anyhow::{bail, Result};
+use colored::Colorize;
 use queries::LastfmQuery;
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
@@ -13,7 +15,6 @@ pub struct LastfmScrobbler {
     pub api_key: String,
     pub api_secret: String,
     pub session_key: String,
-    pub username: String,
 }
 
 #[derive(Deserialize)]
@@ -24,15 +25,14 @@ struct LastfmSession {
 #[derive(Deserialize)]
 struct LastfmSessionData {
     key: String,
-
-    #[serde(rename = "name")]
-    username: String,
+    name: String,
 }
 
 impl LastfmScrobbler {
-    pub fn new(username: String, password: String, api_key: String, api_secret: String) -> Result<Self> {
+    pub fn new(username: String, password: String, api_key: String, api_secret: String) -> Self {
         let client = Client::new();
-        let session = client
+
+        let response = client
             .post(API_BASE_URL)
             .header("content-length", "0")
             .query(
@@ -43,15 +43,17 @@ impl LastfmScrobbler {
                     .insert("password", password)
                     .sign(&api_secret),
             )
-            .send()?
-            .json::<LastfmSession>()?
-            .session;
+            .send()
+            .and_then(|response| response.json::<LastfmSession>());
 
-        Ok(Self { client, api_key, api_secret, session_key: session.key, username: session.username })
+        let Ok(session) = response else { exit!("Last.fm", "Invalid credentials provided.") };
+        log_success("Last.fm", format!("Successfully authenticated with username {}.", session.session.name.bright_blue()));
+
+        Self { client, api_key, api_secret, session_key: session.session.key }
     }
 
     pub fn scrobble(&self, artist: &str, title: &str, total_length: u32) -> Result<()> {
-        match self
+        let status = self
             .client
             .post(API_BASE_URL)
             .header("content-length", "0")
@@ -67,10 +69,12 @@ impl LastfmScrobbler {
                     .sign(&self.api_secret),
             )
             .send()?
-            .status()
-        {
-            StatusCode::OK => Ok(()),
-            status_code => bail!("Received status code {status_code}."),
+            .status();
+
+        if status != StatusCode::OK {
+            bail!("Received status code {status}.");
         }
+
+        Ok(())
     }
 }

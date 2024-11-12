@@ -1,6 +1,8 @@
 mod payloads;
 
+use crate::{exit, logger::log_success};
 use anyhow::{bail, Result};
+use colored::Colorize;
 use payloads::{Listen, Listens};
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
@@ -10,40 +12,44 @@ const API_BASE_URL: &str = "https://api.listenbrainz.org/1";
 pub struct ListenBrainzScrobbler {
     pub client: Client,
     pub user_token: String,
-    pub username: String,
 }
 
 #[derive(Deserialize)]
 struct ListenBrainzToken {
-    #[serde(rename = "user_name")]
-    username: String,
+    user_name: String,
 }
 
 impl ListenBrainzScrobbler {
-    pub fn new(user_token: String) -> Result<Self> {
+    pub fn new(user_token: String) -> Self {
         let user_token = format!("Token {user_token}");
+
         let client = Client::new();
-        let username = client
+
+        let response = client
             .get(format!("{API_BASE_URL}/validate-token"))
             .header("authorization", &user_token)
-            .send()?
-            .json::<ListenBrainzToken>()?
-            .username;
+            .send()
+            .and_then(|response| response.json::<ListenBrainzToken>());
 
-        Ok(Self { client, user_token, username })
+        let Ok(token) = response else { exit!("ListenBrainz", "Invalid user token provided.") };
+        log_success("ListenBrainz", format!("Successfully authenticated with username {}.", token.user_name.bright_blue()));
+
+        Self { client, user_token }
     }
 
     pub fn scrobble(&self, artist: &str, title: &str, total_length: u32) -> Result<()> {
-        match self
+        let status = self
             .client
             .post(format!("{API_BASE_URL}/submit-listens"))
             .header("authorization", &self.user_token)
             .json(&Listens::new("single", vec![Listen::new(artist, title, total_length)]))
             .send()?
-            .status()
-        {
-            StatusCode::OK => Ok(()),
-            status_code => bail!("Received status code {status_code}."),
+            .status();
+
+        if status != StatusCode::OK {
+            bail!("Received status code {status}.");
         }
+
+        Ok(())
     }
 }

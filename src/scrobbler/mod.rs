@@ -26,31 +26,8 @@ impl Scrobbler {
 
         Ok(Self {
             config: config.scrobbler,
-            last_fm: config.last_fm.and_then(|config| {
-                LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret).map_or_else(
-                    |_| {
-                        exit!("Last.fm", "Invalid credentials provided.");
-                    },
-                    |scrobbler| {
-                        log_success("Last.fm", format!("Successfully authenticated with username {}.", scrobbler.username.bright_blue()));
-                        Some(scrobbler)
-                    },
-                )
-            }),
-            listenbrainz: config.listenbrainz.and_then(|config| {
-                ListenBrainzScrobbler::new(config.user_token).map_or_else(
-                    |_| {
-                        exit!("ListenBrainz", "Invalid user token provided.");
-                    },
-                    |scrobbler| {
-                        log_success(
-                            "ListenBrainz",
-                            format!("Successfully authenticated with username {}.", scrobbler.username.bright_blue()),
-                        );
-                        Some(scrobbler)
-                    },
-                )
-            }),
+            last_fm: config.last_fm.map(|config| LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret)),
+            listenbrainz: config.listenbrainz.map(|config| ListenBrainzScrobbler::new(config.user_token)),
             recent_score: None,
             cooldown_secs: 0,
         })
@@ -59,7 +36,6 @@ impl Scrobbler {
     pub fn start(&mut self) {
         log_success("Scrobbler", "Started!");
 
-        // Set the initial last score
         self.recent_score = get_recent_score(self.config.user_id, &self.config.mode).unwrap_or(None);
 
         loop {
@@ -71,24 +47,22 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        let Some(score) = get_recent_score(self.config.user_id, &self.config.mode).unwrap_or_else(|error| {
-            // Exit on invalid user ID
-            if error.to_string().contains("404") {
-                exit!("Scrobbler", "Invalid osu! user ID given.");
-            }
+        match get_recent_score(self.config.user_id, &self.config.mode) {
+            Ok(score) => {
+                let Some(score) = score else { return };
 
-            log_error("Scrobbler", error);
+                if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
+                    self.scrobble(score);
+                }
+            },
+            Err(error) => {
+                if error.to_string().contains("404") {
+                    exit!("Scrobbler", "Invalid osu! user ID given.");
+                }
 
-            // Increase cooldown by 10s since API returned an error
-            self.cooldown_secs += 10;
-
-            None
-        }) else {
-            return;
-        };
-
-        if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
-            self.scrobble(score);
+                log_error("Scrobbler", error);
+                self.cooldown_secs += 10;
+            },
         }
     }
 
@@ -97,11 +71,28 @@ impl Scrobbler {
             return;
         }
 
-        let use_original_metadata = self.config.use_original_metadata.unwrap_or(true);
-        let artist = if use_original_metadata { &score.beatmapset.artist_unicode } else { &score.beatmapset.artist };
-        let title = if use_original_metadata { &score.beatmapset.title_unicode } else { &score.beatmapset.title };
+        let (artist_original, artist_romanized) = (&score.beatmapset.artist_unicode, &score.beatmapset.artist);
+        let (title_original, title_romanized) = (&score.beatmapset.title_unicode, &score.beatmapset.title);
 
-        log_success("Scrobbler", format!("New score found: {}", format!("{artist} - {title}").bright_blue()));
+        let (mut artist, title) = if self.config.use_original_metadata.unwrap_or(true) {
+            (artist_original, title_original)
+        } else {
+            (artist_romanized, title_romanized)
+        };
+
+        let mut redirected_text = "".into();
+
+        if let Some(artist_redirects) = &self.config.artist_redirects {
+            if let Some((old_artist, new_artist)) = artist_redirects.iter().find(|(old_artist, new_artist)| {
+                artist != new_artist
+                    && [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old_artist.to_lowercase())
+            }) {
+                artist = new_artist;
+                redirected_text = format!(" (redirected from {})", old_artist.bright_blue());
+            }
+        }
+
+        log_success("Scrobbler", format!("New score found: {}{redirected_text} - {}", artist.bright_blue(), title.bright_blue()));
 
         if self.config.log_scrobbles.unwrap_or(false) {
             log_file(format!("[{} UTC] {artist} - {title}", score.ended_at));
