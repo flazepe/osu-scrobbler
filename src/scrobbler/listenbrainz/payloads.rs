@@ -23,12 +23,13 @@ pub struct Listen {
 }
 
 impl Listen {
-    pub fn new<T: Display, U: Display>(artist_name: T, track_name: U, duration: u32) -> Self {
+    pub fn new<T: Display, U: Display, V: Display>(artist_name: T, track_name: U, release_name: Option<V>, duration: u32) -> Self {
         Self {
             listened_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
             track_metadata: TrackMetadata::new(
                 artist_name,
                 track_name,
+                release_name,
                 TrackAdditionalInfo::new(
                     "osu!",
                     "osu-scrobbler (github.com/flazepe/osu-scrobbler)",
@@ -44,12 +45,26 @@ impl Listen {
 pub struct TrackMetadata {
     pub artist_name: String,
     pub track_name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_name: Option<String>,
+
     pub additional_info: TrackAdditionalInfo,
 }
 
 impl TrackMetadata {
-    pub fn new<T: Display, U: Display>(artist_name: T, track_name: U, additional_info: TrackAdditionalInfo) -> Self {
-        Self { track_name: track_name.to_string(), artist_name: artist_name.to_string(), additional_info }
+    pub fn new<T: Display, U: Display, V: Display>(
+        artist_name: T,
+        track_name: U,
+        release_name: Option<V>,
+        additional_info: TrackAdditionalInfo,
+    ) -> Self {
+        Self {
+            artist_name: artist_name.to_string(),
+            track_name: track_name.to_string(),
+            release_name: release_name.map(|release_name| release_name.to_string()),
+            additional_info,
+        }
     }
 }
 

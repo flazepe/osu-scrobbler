@@ -37,12 +37,12 @@ impl ListenBrainzScrobbler {
         Self { client, user_token }
     }
 
-    pub fn scrobble(&self, artist: &str, title: &str, total_length: u32) -> Result<()> {
+    pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32) -> Result<()> {
         let status = self
             .client
             .post(format!("{API_BASE_URL}/submit-listens"))
             .header("authorization", &self.user_token)
-            .json(&Listens::new("single", vec![Listen::new(artist, title, total_length)]))
+            .json(&Listens::new("single", vec![Listen::new(artist, title, album, total_length)]))
             .send()?
             .status();
 

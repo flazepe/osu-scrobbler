@@ -7,12 +7,14 @@ use crate::{
     logger::{log_error, log_file, log_success},
     scores::{get_recent_score, Score},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
+    spotify::Spotify,
 };
 use colored::Colorize;
 use std::{thread::sleep, time::Duration};
 
 pub struct Scrobbler {
     config: ScrobblerConfig,
+    spotify: Spotify,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
@@ -24,11 +26,12 @@ impl Scrobbler {
         let config = get_config();
 
         if config.last_fm.is_none() && config.listenbrainz.is_none() {
-            exit!("Scrobbler", "Please provide config for either Last.fm or ListenBrainz.");
+            exit!("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
         }
 
         Self {
             config: config.scrobbler,
+            spotify: Spotify::new(),
             last_fm: config.last_fm.map(|config| LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret)),
             listenbrainz: config.listenbrainz.map(|config| ListenBrainzScrobbler::new(config.user_token)),
             recent_score: None,
@@ -74,42 +77,66 @@ impl Scrobbler {
             return;
         }
 
-        let (artist_original, artist_romanized) = (&score.beatmapset.artist_unicode, &score.beatmapset.artist);
-        let (title_original, title_romanized) = (&score.beatmapset.title_unicode, &score.beatmapset.title);
+        let (artist_romanized, artist_original) = (score.beatmapset.artist.clone(), score.beatmapset.artist_unicode.clone());
+        let (title_romanized, title_original) = (score.beatmapset.title.clone(), score.beatmapset.title_unicode.clone());
 
-        let (mut artist, title) = if self.config.use_original_metadata.unwrap_or(true) {
-            (artist_original, title_original)
-        } else {
-            (artist_romanized, title_romanized)
-        };
+        let mut artist = artist_romanized.clone();
+        let mut title = title_romanized.clone();
+        let mut album = None;
 
-        let mut redirected_text = "".into();
+        if self.config.use_original_metadata.unwrap_or(true) {
+            artist = artist_original.clone();
+            title = title_original.clone();
+        }
 
-        if let Some(artist_redirects) = &self.config.artist_redirects {
-            if let Some((old_artist, new_artist)) = artist_redirects.iter().find(|(old_artist, new_artist)| {
-                artist != new_artist
-                    && [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old_artist.to_lowercase())
-            }) {
-                artist = new_artist;
-                redirected_text = format!(" (redirected from {})", old_artist.bright_blue());
+        if self.config.use_spotify_metadata.unwrap_or(false) {
+            if let Ok(track) = self.spotify.search_track(score.beatmapset.clone()) {
+                artist = track.artist;
+                title = track.title;
+                album = Some(track.album);
             }
         }
 
-        log_success("Scrobbler", format!("New score found: {}{redirected_text} - {}", artist.bright_blue(), title.bright_blue()));
+        let redirected_text = self
+            .config
+            .artist_redirects
+            .as_ref()
+            .and_then(|artist_redirects| {
+                artist_redirects.iter().find(|(old, new)| {
+                    [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old.to_lowercase()) && new != &artist
+                })
+            })
+            .map_or_else(
+                || "".into(),
+                |(old, new)| {
+                    artist = new.clone();
+                    format!(" (redirected from {})", old.bright_blue())
+                },
+            );
+
+        log_success(
+            "Scrobbler",
+            format!(
+                "New score found: {}{redirected_text} - {} ({})",
+                artist.bright_blue(),
+                title.bright_blue(),
+                album.as_deref().unwrap_or("Unknown Album").bright_blue(),
+            ),
+        );
 
         if self.config.log_scrobbles.unwrap_or(false) {
             log_file(format!("[{}] {artist} - {title}", score.ended_at));
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
-            match last_fm.scrobble(artist, title, score.beatmap.total_length) {
+            match last_fm.scrobble(&artist, &title, album.as_deref(), score.beatmap.total_length) {
                 Ok(_) => log_success("\tLast.fm", "Successfully scrobbled score."),
                 Err(error) => log_error("\tLast.fm", error),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-            match listenbrainz.scrobble(artist, title, score.beatmap.total_length) {
+            match listenbrainz.scrobble(&artist, &title, album.as_deref(), score.beatmap.total_length) {
                 Ok(_) => log_success("\tListenBrainz", "Successfully scrobbled score."),
                 Err(error) => log_error("\tListenBrainz", error),
             };

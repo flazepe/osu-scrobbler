@@ -2,6 +2,7 @@ mod config;
 mod logger;
 mod scores;
 mod scrobbler;
+mod spotify;
 
 use anyhow::Result;
 use scrobbler::Scrobbler;
