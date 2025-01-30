@@ -4,12 +4,10 @@ mod scores;
 mod scrobbler;
 mod spotify;
 
-use anyhow::Result;
 use scrobbler::Scrobbler;
 
-fn main() -> Result<()> {
-    Scrobbler::new().start();
-    Ok(())
+fn main() {
+    Scrobbler::new().start()
 }
 
 #[macro_export]

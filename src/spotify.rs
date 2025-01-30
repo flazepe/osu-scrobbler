@@ -53,7 +53,7 @@ impl Spotify {
         let extensions = json!({
             "persistedQuery": {
                 "version": 1,
-                "sha256Hash": "220d098228a4eaf216b39e8c147865244959c4cc6fd82d394d88afda0b710929"
+                "sha256Hash": "220d098228a4eaf216b39e8c147865244959c4cc6fd82d394d88afda0b710929",
             },
         });
 
