@@ -6,13 +6,19 @@ use std::{
 
 #[derive(Serialize)]
 pub struct Listens {
-    pub listen_type: String,
+    pub listen_type: ListenType,
     pub payload: Vec<Listen>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ListenType {
+    Single,
+}
+
 impl Listens {
-    pub fn new<T: ToString>(listen_type: T, listens: Vec<Listen>) -> Self {
-        Self { listen_type: listen_type.to_string(), payload: listens }
+    pub fn new(listen_type: ListenType, listens: Vec<Listen>) -> Self {
+        Self { listen_type, payload: listens }
     }
 }
 
@@ -77,7 +83,7 @@ pub struct TrackAdditionalInfo {
 }
 
 impl TrackAdditionalInfo {
-    pub fn new<T: ToString, U: ToString, V: ToString>(
+    pub fn new<T: Display, U: Display, V: Display>(
         media_player: T,
         submission_client: U,
         submission_client_version: V,

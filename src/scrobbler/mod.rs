@@ -10,7 +10,10 @@ use crate::{
     spotify::Spotify,
 };
 use colored::Colorize;
-use std::{thread::sleep, time::Duration};
+use reqwest::blocking::Client;
+use std::{sync::LazyLock, thread::sleep, time::Duration};
+
+static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
 pub struct Scrobbler {
     config: ScrobblerConfig,
@@ -103,22 +106,21 @@ impl Scrobbler {
             .as_ref()
             .and_then(|artist_redirects| {
                 artist_redirects.iter().find(|(old, new)| {
-                    [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old.to_lowercase()) && new != &artist
+                    [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old.to_lowercase())
+                        && new.to_lowercase() != artist.to_lowercase()
                 })
             })
-            .map_or_else(
-                || "".into(),
-                |(old, new)| {
-                    artist = new.clone();
-                    format!(" (redirected from {})", old.bright_blue())
-                },
-            );
+            .map(|(old, new)| {
+                artist = new.clone();
+                format!(" (redirected from {})", old.bright_blue())
+            });
 
         log_success(
             "Scrobbler",
             format!(
-                "New score found: {}{redirected_text} - {} ({})",
+                "New score found: {}{} - {} ({})",
                 artist.bright_blue(),
+                redirected_text.as_deref().unwrap_or(""),
                 title.bright_blue(),
                 album.as_deref().unwrap_or("Unknown Album").bright_blue(),
             ),

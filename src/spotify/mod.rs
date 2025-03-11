@@ -1,7 +1,10 @@
+mod payloads;
+
 use crate::scores::Beatmapset;
 use anyhow::{bail, Context, Result};
+use payloads::{SpotifyArtist, SpotifyData, SpotifySearchResult, SpotifyToken, SpotifyTrack};
 use reqwest::blocking::Client;
-use serde::Deserialize;
+
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -45,18 +48,13 @@ impl Spotify {
             "searchTerm": format!("{} - {}", beatmapset.artist_unicode, beatmapset.title_unicode),
             "offset": 0,
             "limit": 20,
-            "numberOfTopResults": 20,
-            "includeAudiobooks": false,
-            "includePreReleases": false,
         });
-
         let extensions = json!({
             "persistedQuery": {
                 "version": 1,
                 "sha256Hash": "220d098228a4eaf216b39e8c147865244959c4cc6fd82d394d88afda0b710929",
             },
         });
-
         let json = self
             .client
             .get("https://api-partner.spotify.com/pathfinder/v1/query")
@@ -79,80 +77,12 @@ impl Spotify {
             }
 
             return Ok(SpotifyTrack {
-                artist: artist.profile.name.clone(),
-                title: track.item.data.name.clone(),
-                album: track.item.data.album_of_track.name.clone(),
+                artist: artist.profile.name,
+                title: track.item.data.name,
+                album: track.item.data.album_of_track.name,
             });
         }
 
         bail!("Could not find track.");
     }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotifyToken {
-    pub access_token: String,
-    pub access_token_expiration_timestamp_ms: u128,
-}
-
-#[derive(Deserialize)]
-pub struct SpotifyTrack {
-    pub artist: String,
-    pub title: String,
-    pub album: String,
-}
-
-// Generics
-#[derive(Deserialize)]
-pub struct SpotifyData<T> {
-    data: T,
-}
-
-#[derive(Deserialize)]
-pub struct SpotifyItems<T> {
-    items: Vec<T>,
-}
-
-#[derive(Deserialize)]
-pub struct SpotifyItem<T> {
-    item: T,
-}
-
-// Search
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotifySearchResult {
-    search_v2: SpotifySearchV2,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotifySearchV2 {
-    tracks_v2: SpotifyItems<SpotifyItem<SpotifyData<SpotifyTrackItem>>>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotifyTrackItem {
-    name: String,
-    album_of_track: SpotifyAlbum,
-    artists: SpotifyItems<SpotifyArtist>,
-}
-
-// Album
-#[derive(Deserialize)]
-pub struct SpotifyAlbum {
-    name: String,
-}
-
-// Artist
-#[derive(Deserialize)]
-pub struct SpotifyArtist {
-    profile: SpotifyArtistProfile,
-}
-
-#[derive(Deserialize)]
-pub struct SpotifyArtistProfile {
-    name: String,
 }
