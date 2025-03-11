@@ -93,7 +93,7 @@ impl Scrobbler {
         }
 
         if self.config.use_spotify_metadata.unwrap_or(false) {
-            if let Ok(track) = self.spotify.search_track(score.beatmapset.clone()) {
+            if let Ok(track) = self.spotify.search_track(&score.beatmapset) {
                 artist = track.artist;
                 title = track.title;
                 album = Some(track.album);

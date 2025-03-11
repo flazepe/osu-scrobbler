@@ -3,19 +3,19 @@ use anyhow::{bail, Result};
 use reqwest::{blocking::Client, StatusCode};
 use serde::Deserialize;
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Score {
     pub ended_at: String,
     pub beatmap: Beatmap,
     pub beatmapset: Beatmapset,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Beatmap {
     pub total_length: u32,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Beatmapset {
     pub artist: String,
     pub artist_unicode: String,

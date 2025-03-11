@@ -39,7 +39,7 @@ impl Spotify {
         Ok(())
     }
 
-    pub fn search_track(&mut self, beatmapset: Beatmapset) -> Result<SpotifyTrack> {
+    pub fn search_track(&mut self, beatmapset: &Beatmapset) -> Result<SpotifyTrack> {
         self.ensure_token()?;
 
         let Some(token) = &self.token else { bail!("Token not found.") };
