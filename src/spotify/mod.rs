@@ -4,7 +4,6 @@ use crate::scores::Beatmapset;
 use anyhow::{bail, Context, Result};
 use payloads::{SpotifyArtist, SpotifyData, SpotifySearchResult, SpotifyToken, SpotifyTrack};
 use reqwest::blocking::Client;
-
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 
