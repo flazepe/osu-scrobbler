@@ -5,7 +5,21 @@ use anyhow::{bail, Context, Result};
 use payloads::{SpotifyArtist, SpotifyData, SpotifySearchResult, SpotifyToken, SpotifyTrack};
 use reqwest::blocking::Client;
 use serde_json::json;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    sync::LazyLock,
+    time::{SystemTime, UNIX_EPOCH},
+};
+use totp_rs::{Algorithm, Secret, TOTP};
+
+static SPOTIFY_TOTP: LazyLock<TOTP> = LazyLock::new(|| {
+    let secret = generate_totp_secret([12, 56, 76, 33, 88, 44, 88, 33, 78, 78, 11, 66, 22, 22, 55, 69, 54]).unwrap();
+    TOTP::new(Algorithm::SHA1, 6, 1, 30, secret).unwrap()
+});
+
+fn generate_totp_secret(secret: [usize; 17]) -> Result<Vec<u8>> {
+    let transformed = secret.iter().enumerate().fold(String::new(), |acc, (index, entry)| acc + &(entry ^ ((index % 33) + 9)).to_string());
+    Ok(Secret::Raw(transformed.as_bytes().to_vec()).to_bytes()?)
+}
 
 pub struct Spotify {
     client: Client,
@@ -27,7 +41,7 @@ impl Spotify {
         let token = self
             .client
             .get("https://open.spotify.com/get_access_token")
-            .query(&[("reason", "transport"), ("productType", "web_player")])
+            .query(&[("productType", "web-player"), ("totp", &SPOTIFY_TOTP.generate_current()?), ("totpVer", "5")])
             .header("user-agent", "yes")
             .send()?
             .json::<SpotifyToken>()
