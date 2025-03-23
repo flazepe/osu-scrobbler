@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SpotifyToken {
+pub struct SpotifyAccessToken {
     pub access_token: String,
     pub access_token_expiration_timestamp_ms: u128,
 }
