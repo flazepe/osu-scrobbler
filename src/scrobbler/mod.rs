@@ -2,10 +2,10 @@ mod last_fm;
 mod listenbrainz;
 
 use crate::{
-    config::{get_config, ScrobblerConfig},
+    config::{ScrobblerConfig, get_config},
     exit,
     logger::{log_error, log_file, log_success},
-    scores::{get_recent_score, Score},
+    scores::{Score, get_recent_score},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
     spotify::Spotify,
 };
@@ -60,7 +60,7 @@ impl Scrobbler {
             Ok(score) => {
                 let Some(score) = score else { return };
 
-                if self.recent_score.as_ref().map_or(true, |recent_score| recent_score.ended_at != score.ended_at) {
+                if self.recent_score.as_ref().is_some_and(|recent_score| recent_score.ended_at != score.ended_at) {
                     self.scrobble(score);
                 }
             },
