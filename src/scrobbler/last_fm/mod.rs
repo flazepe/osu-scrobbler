@@ -1,7 +1,7 @@
 mod queries;
 
 use crate::{exit, logger::log_success, scrobbler::REQWEST};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use colored::Colorize;
 use queries::LastfmQuery;
 use reqwest::StatusCode;

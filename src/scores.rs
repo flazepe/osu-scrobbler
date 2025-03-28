@@ -1,6 +1,6 @@
 use crate::config::Mode;
-use anyhow::{bail, Result};
-use reqwest::{blocking::Client, StatusCode};
+use anyhow::{Result, bail};
+use reqwest::{StatusCode, blocking::Client};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -43,9 +43,5 @@ pub fn get_recent_score(user_id: u64, mode: &Option<Mode>) -> Result<Option<Scor
 
     let Ok(mut scores) = response.json::<Vec<Score>>() else { return Ok(None) };
 
-    if scores.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(scores.remove(0)))
-    }
+    if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
 }

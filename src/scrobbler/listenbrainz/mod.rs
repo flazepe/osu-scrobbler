@@ -1,7 +1,7 @@
 mod payloads;
 
 use crate::{exit, logger::log_success, scrobbler::REQWEST};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use colored::Colorize;
 use payloads::{Listen, ListenType, Listens};
 use reqwest::StatusCode;
