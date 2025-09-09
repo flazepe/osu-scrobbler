@@ -2,7 +2,6 @@ mod config;
 mod logger;
 mod scores;
 mod scrobbler;
-mod spotify;
 
 use scrobbler::Scrobbler;
 

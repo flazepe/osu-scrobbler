@@ -7,7 +7,6 @@ use crate::{
     logger::{log_error, log_file, log_success},
     scores::{Score, get_recent_score},
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
-    spotify::Spotify,
 };
 use colored::Colorize;
 use reqwest::blocking::Client;
@@ -17,7 +16,6 @@ static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
 pub struct Scrobbler {
     config: ScrobblerConfig,
-    spotify: Spotify,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
@@ -34,7 +32,6 @@ impl Scrobbler {
 
         Self {
             config: config.scrobbler,
-            spotify: Spotify::new(),
             last_fm: config.last_fm.map(|config| LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret)),
             listenbrainz: config.listenbrainz.map(|config| ListenBrainzScrobbler::new(config.user_token)),
             recent_score: None,
@@ -80,24 +77,15 @@ impl Scrobbler {
             return;
         }
 
-        let (artist_romanized, artist_original) = (score.beatmapset.artist.clone(), score.beatmapset.artist_unicode.clone());
-        let (title_romanized, title_original) = (score.beatmapset.title.clone(), score.beatmapset.title_unicode.clone());
+        let (artist_romanized, artist_original) = (&score.beatmapset.artist, &score.beatmapset.artist_unicode);
+        let (title_romanized, title_original) = (&score.beatmapset.title, &score.beatmapset.title_unicode);
 
-        let mut artist = artist_romanized.clone();
-        let mut title = title_romanized.clone();
-        let mut album = None;
+        let mut artist = artist_romanized;
+        let mut title = title_romanized;
 
         if self.config.use_original_metadata.unwrap_or(true) {
-            artist = artist_original.clone();
-            title = title_original.clone();
-        }
-
-        if self.config.use_spotify_metadata.unwrap_or(false) {
-            if let Ok(track) = self.spotify.search_track(&score.beatmapset) {
-                artist = track.artist;
-                title = track.title;
-                album = Some(track.album);
-            }
+            artist = artist_original;
+            title = title_original;
         }
 
         let redirected_text = self
@@ -111,19 +99,13 @@ impl Scrobbler {
                 })
             })
             .map(|(old, new)| {
-                artist = new.clone();
+                artist = new;
                 format!(" (redirected from {})", old.bright_blue())
             });
 
         log_success(
             "Scrobbler",
-            format!(
-                "New score found: {}{} - {} ({})",
-                artist.bright_blue(),
-                redirected_text.as_deref().unwrap_or(""),
-                title.bright_blue(),
-                album.as_deref().unwrap_or("Unknown Album").bright_blue(),
-            ),
+            format!("New score found: {}{} - {}", artist.bright_blue(), redirected_text.as_deref().unwrap_or(""), title.bright_blue(),),
         );
 
         if self.config.log_scrobbles.unwrap_or(false) {
@@ -131,14 +113,14 @@ impl Scrobbler {
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
-            match last_fm.scrobble(&artist, &title, album.as_deref(), score.beatmap.total_length) {
+            match last_fm.scrobble(artist, title, None, score.beatmap.total_length) {
                 Ok(_) => log_success("\tLast.fm", "Successfully scrobbled score."),
                 Err(error) => log_error("\tLast.fm", error),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-            match listenbrainz.scrobble(&artist, &title, album.as_deref(), score.beatmap.total_length) {
+            match listenbrainz.scrobble(artist, title, None, score.beatmap.total_length) {
                 Ok(_) => log_success("\tListenBrainz", "Successfully scrobbled score."),
                 Err(error) => log_error("\tListenBrainz", error),
             };

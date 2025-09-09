@@ -15,7 +15,6 @@ pub struct ScrobblerConfig {
     pub user_id: u64,
     pub mode: Option<Mode>,
     pub use_original_metadata: Option<bool>,
-    pub use_spotify_metadata: Option<bool>,
     pub min_beatmap_length_secs: Option<u32>,
     pub log_scrobbles: Option<bool>,
     pub artist_redirects: Option<Vec<(String, String)>>,
