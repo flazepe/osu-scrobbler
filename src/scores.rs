@@ -2,7 +2,10 @@ use crate::config::Mode;
 use anyhow::{Result, bail};
 use musicbrainz_rs::{
     Search,
-    entity::recording::{Recording, RecordingSearchQuery},
+    entity::{
+        recording::{Recording, RecordingSearchQuery},
+        release_group::ReleaseGroupPrimaryType,
+    },
 };
 use reqwest::{StatusCode, blocking::Client};
 use serde::Deserialize;
@@ -38,7 +41,7 @@ impl Score {
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
     }
 
-    pub fn get_musicbrainz_recording(&self) -> Option<Recording> {
+    pub fn get_musicbrainz_recordings(&self) -> Vec<Recording> {
         let mut query_artist = RecordingSearchQuery::query_builder();
 
         query_artist
@@ -66,9 +69,33 @@ impl Score {
             .alias(&self.beatmapset.title_unicode);
 
         let query = RecordingSearchQuery::query_builder().expr(&mut query_artist).and().expr(&mut query_title).build();
-        let results = Recording::search(query).with_aliases().execute();
+        let results = Recording::search(query).limit(100).execute();
 
-        results.ok().and_then(|results| results.entities.into_iter().next())
+        results.map(|results| results.entities).unwrap_or_default()
+    }
+
+    pub fn get_album_name(&self) -> Option<String> {
+        let find_by_group_primary_type = |primary_type: ReleaseGroupPrimaryType| {
+            for recording in self.get_musicbrainz_recordings() {
+                let Some(releases) = recording.releases else { continue };
+
+                for release in releases {
+                    let Some(release_group) = release.release_group else { continue };
+
+                    if release_group.primary_type == Some(primary_type.clone()) && release_group.secondary_types.is_empty() {
+                        return Some(release.title);
+                    }
+                }
+            }
+
+            None
+        };
+
+        find_by_group_primary_type(ReleaseGroupPrimaryType::Album)
+            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::Ep))
+            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::Single))
+            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::Other))
+            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType))
     }
 }
 

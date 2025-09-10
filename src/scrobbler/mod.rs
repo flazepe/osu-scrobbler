@@ -82,18 +82,11 @@ impl Scrobbler {
 
         let mut artist = artist_romanized;
         let mut title = title_romanized;
-        let mut album = None::<String>;
+        let album = score.get_album_name();
 
         if self.config.use_original_metadata.unwrap_or(true) {
             artist = artist_original;
             title = title_original;
-        }
-
-        if let Some(recording) = score.get_musicbrainz_recording()
-            && let Some(releases) = recording.releases
-            && let Some(release) = releases.into_iter().next()
-        {
-            album = Some(release.title);
         }
 
         let redirected_text = self
