@@ -43,7 +43,6 @@ impl Score {
 
     pub fn get_musicbrainz_recordings(&self) -> Vec<Recording> {
         let mut query_artist = RecordingSearchQuery::query_builder();
-
         query_artist
             .artist(&self.beatmapset.artist)
             .or()
@@ -54,7 +53,6 @@ impl Score {
             .artist_name(&self.beatmapset.artist_unicode);
 
         let mut query_title = RecordingSearchQuery::query_builder();
-
         query_title
             .recording(&self.beatmapset.title)
             .or()
@@ -75,11 +73,12 @@ impl Score {
     }
 
     pub fn get_album_name(&self) -> Option<String> {
-        let find_by_group_primary_type = |primary_type: ReleaseGroupPrimaryType| {
+        let find_by_group_primary_type = |primary_type: Option<ReleaseGroupPrimaryType>| {
             for recording in self.get_musicbrainz_recordings() {
                 let Some(releases) = recording.releases else { continue };
 
                 for release in releases {
+                    let Some(primary_type) = &primary_type else { return Some(release.title) };
                     let Some(release_group) = release.release_group else { continue };
 
                     if release_group.primary_type == Some(primary_type.clone()) && release_group.secondary_types.is_empty() {
@@ -91,11 +90,12 @@ impl Score {
             None
         };
 
-        find_by_group_primary_type(ReleaseGroupPrimaryType::Album)
-            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::Ep))
-            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::Single))
-            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::Other))
-            .or(find_by_group_primary_type(ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType))
+        find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Album))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Ep)))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Single)))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Other)))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType)))
+            .or_else(|| find_by_group_primary_type(None))
     }
 }
 
