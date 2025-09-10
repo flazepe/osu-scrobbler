@@ -5,7 +5,7 @@ use crate::{
     config::{ScrobblerConfig, get_config},
     exit,
     logger::{log_error, log_file, log_success},
-    scores::{Score, get_recent_score},
+    scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
 use colored::Colorize;
@@ -42,7 +42,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         log_success("Scrobbler", "Started!");
 
-        self.recent_score = get_recent_score(self.config.user_id, &self.config.mode).unwrap_or(None);
+        self.recent_score = Score::get_user_recent(self.config.user_id, &self.config.mode).unwrap_or(None);
 
         loop {
             self.cooldown_secs = 0;
@@ -53,7 +53,7 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        match get_recent_score(self.config.user_id, &self.config.mode) {
+        match Score::get_user_recent(self.config.user_id, &self.config.mode) {
             Ok(score) => {
                 let Some(score) = score else { return };
 
@@ -82,10 +82,18 @@ impl Scrobbler {
 
         let mut artist = artist_romanized;
         let mut title = title_romanized;
+        let mut album = None::<String>;
 
         if self.config.use_original_metadata.unwrap_or(true) {
             artist = artist_original;
             title = title_original;
+        }
+
+        if let Some(recording) = score.get_musicbrainz_recording()
+            && let Some(releases) = recording.releases
+            && let Some(release) = releases.into_iter().next()
+        {
+            album = Some(release.title);
         }
 
         let redirected_text = self
@@ -105,7 +113,13 @@ impl Scrobbler {
 
         log_success(
             "Scrobbler",
-            format!("New score found: {}{} - {}", artist.bright_blue(), redirected_text.as_deref().unwrap_or(""), title.bright_blue(),),
+            format!(
+                "New score found: {}{} - {} ({})",
+                artist.bright_blue(),
+                redirected_text.as_deref().unwrap_or(""),
+                title.bright_blue(),
+                album.as_deref().unwrap_or("Unknown Album").bright_blue(),
+            ),
         );
 
         if self.config.log_scrobbles.unwrap_or(false) {
@@ -113,14 +127,14 @@ impl Scrobbler {
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
-            match last_fm.scrobble(artist, title, None, score.beatmap.total_length) {
+            match last_fm.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
                 Ok(_) => log_success("\tLast.fm", "Successfully scrobbled score."),
                 Err(error) => log_error("\tLast.fm", error),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-            match listenbrainz.scrobble(artist, title, None, score.beatmap.total_length) {
+            match listenbrainz.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
                 Ok(_) => log_success("\tListenBrainz", "Successfully scrobbled score."),
                 Err(error) => log_error("\tListenBrainz", error),
             };
