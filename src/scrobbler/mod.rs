@@ -2,7 +2,7 @@ mod last_fm;
 mod listenbrainz;
 
 use crate::{
-    config::{ScrobblerConfig, get_config},
+    config::{Config, ScrobblerConfig},
     exit,
     logger::{log_error, log_file, log_success},
     scores::Score,
@@ -26,7 +26,7 @@ pub struct Scrobbler {
 
 impl Scrobbler {
     pub fn new() -> Self {
-        let config = get_config();
+        let config = Config::get();
 
         if config.last_fm.is_none() && config.listenbrainz.is_none() {
             exit!("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
@@ -44,8 +44,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         log_success("Scrobbler", "Started!");
 
-        self.recent_score =
-            Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails.unwrap_or(false)).unwrap_or(None);
+        self.recent_score = Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails).unwrap_or(None);
 
         loop {
             self.cooldown_secs = 0;
@@ -60,7 +59,7 @@ impl Scrobbler {
             return;
         }
 
-        match Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails.unwrap_or(false)) {
+        match Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails) {
             Ok(score) => {
                 let Some(score) = score else { return };
                 self.scrobble(score);
@@ -81,7 +80,7 @@ impl Scrobbler {
             return;
         }
 
-        if score.beatmap.total_length < self.config.min_beatmap_length_secs.unwrap_or(60) {
+        if score.beatmap.total_length < self.config.min_beatmap_length_secs {
             return;
         }
 
@@ -106,7 +105,7 @@ impl Scrobbler {
         let mut title = title_romanized;
         let album = score.get_album_name();
 
-        if self.config.use_original_metadata.unwrap_or(true) {
+        if self.config.use_original_metadata {
             artist = artist_original;
             title = title_original;
         }
@@ -114,12 +113,10 @@ impl Scrobbler {
         let redirected_text = self
             .config
             .artist_redirects
-            .as_ref()
-            .and_then(|artist_redirects| {
-                artist_redirects.iter().find(|(old, new)| {
-                    [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old.to_lowercase())
-                        && new.to_lowercase() != artist.to_lowercase()
-                })
+            .iter()
+            .find(|(old, new)| {
+                [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old.to_lowercase())
+                    && new.to_lowercase() != artist.to_lowercase()
             })
             .map(|(old, new)| {
                 artist = new;
@@ -137,7 +134,7 @@ impl Scrobbler {
             ),
         );
 
-        if self.config.log_scrobbles.unwrap_or(false) {
+        if self.config.log_scrobbles {
             log_file(format!("[{}] {artist} - {title}", score.ended_at));
         }
 
