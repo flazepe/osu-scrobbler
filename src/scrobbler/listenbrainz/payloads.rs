@@ -1,8 +1,6 @@
+use chrono::Utc;
 use serde::Serialize;
-use std::{
-    fmt::Display,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::fmt::Display;
 
 #[derive(Serialize)]
 pub struct Listens {
@@ -24,14 +22,14 @@ impl Listens {
 
 #[derive(Serialize)]
 pub struct Listen {
-    pub listened_at: u64,
+    pub listened_at: i64,
     pub track_metadata: TrackMetadata,
 }
 
 impl Listen {
     pub fn new<T: Display, U: Display, V: Display>(artist_name: T, track_name: U, release_name: Option<V>, duration: u32) -> Self {
         Self {
-            listened_at: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs(),
+            listened_at: Utc::now().timestamp(),
             track_metadata: TrackMetadata::new(
                 artist_name,
                 track_name,
