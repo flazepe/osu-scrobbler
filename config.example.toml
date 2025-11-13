@@ -1,10 +1,10 @@
 [scrobbler]
 user_id = 8834263 # Your osu! user ID
-mode = "osu" # (optional) The osu! mode to scrobble. Possible values: "osu", "taiko", "fruits", "mania"
-use_original_metadata = true # (optional) Whether to use original metadata instead of romanized metadata
-min_beatmap_length_secs = 60 # (optional) The minimum beatmap length to scrobble (in seconds)
+mode = "osu" # (optional) The osu! mode to scrobble. Possible values: "osu", "taiko", "fruits", "mania" (default: user's default mode)
+use_original_metadata = true # (optional) Whether to use original metadata instead of romanized metadata (default: true)
+min_beatmap_length_secs = 60 # (optional) The minimum beatmap length to scrobble (in seconds) (default: 60)
 scrobble_fails = true # (optional) Whether to scrobble failed plays. The failed duration must at least be 50% of the entire beatmap or 4 minutes (default: false)
-log_scrobbles = false # (optional) Whether to log scrobbles to a file
+log_scrobbles = false # (optional) Whether to log scrobbles to a file (default: false)
 artist_redirects = [ # (optional) An array of tuples that contain the old and new artist name to replace with before scrobbling
     ["96猫", "Kuroneko"],
 ]
