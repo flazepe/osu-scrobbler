@@ -11,6 +11,7 @@ use crate::{
 use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{sync::LazyLock, thread::sleep, time::Duration};
+use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
@@ -53,6 +54,10 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
+        if !Self::osu_is_running() {
+            return;
+        }
+
         match Score::get_user_recent(self.config.user_id, &self.config.mode) {
             Ok(score) => {
                 let Some(score) = score else { return };
@@ -134,5 +139,10 @@ impl Scrobbler {
         }
 
         self.recent_score = Some(score);
+    }
+
+    fn osu_is_running() -> bool {
+        let system = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()));
+        system.processes().iter().any(|(_, process)| process.name() == "osu!")
     }
 }
