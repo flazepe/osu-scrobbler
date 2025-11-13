@@ -87,11 +87,19 @@ impl Scrobbler {
         if !score.passed {
             let Ok(started_at) = DateTime::parse_from_rfc3339(&score.started_at) else { return };
             let Ok(ended_at) = DateTime::parse_from_rfc3339(&score.ended_at) else { return };
-            let delta = (ended_at - started_at).num_seconds();
+            let delta = (ended_at - started_at).as_seconds_f64();
+
+            let rate = score
+                .mods
+                .iter()
+                .find(|score_mod| score_mod.acronym == "DT" || score_mod.acronym == "NC")
+                .and_then(|dt_or_nc_mod| dt_or_nc_mod.settings.as_ref().map(|settings| settings.speed_change.unwrap_or(1.5)))
+                .unwrap_or(1.);
+            let hit_length = score.beatmap.hit_length as f64 / rate;
 
             // A valid scrobble should be half of the beatmap's hit length or 4 minutes, whichever occurs earlier
             // This might go through if the user paused, took a long break, and continued (just to fail some time after)
-            let is_valid_scrobble = delta >= score.beatmap.hit_length as i64 / 2 || delta >= 60 * 4;
+            let is_valid_scrobble = delta >= hit_length / 2. || delta >= 60. * 4.;
 
             if !is_valid_scrobble {
                 return;

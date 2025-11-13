@@ -13,10 +13,22 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct Score {
     pub passed: bool,
+    pub mods: Vec<ScoreMods>,
     pub started_at: String,
     pub ended_at: String,
     pub beatmap: Beatmap,
     pub beatmapset: Beatmapset,
+}
+
+#[derive(Deserialize)]
+pub struct ScoreMods {
+    pub acronym: String,
+    pub settings: Option<ScoreModSettings>,
+}
+
+#[derive(Deserialize)]
+pub struct ScoreModSettings {
+    pub speed_change: Option<f64>,
 }
 
 impl Score {
