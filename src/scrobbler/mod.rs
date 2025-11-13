@@ -8,6 +8,7 @@ use crate::{
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
+use chrono::DateTime;
 use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{sync::LazyLock, thread::sleep, time::Duration};
@@ -43,7 +44,8 @@ impl Scrobbler {
     pub fn start(&mut self) {
         log_success("Scrobbler", "Started!");
 
-        self.recent_score = Score::get_user_recent(self.config.user_id, &self.config.mode).unwrap_or(None);
+        self.recent_score =
+            Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails.unwrap_or(false)).unwrap_or(None);
 
         loop {
             self.cooldown_secs = 0;
@@ -58,13 +60,10 @@ impl Scrobbler {
             return;
         }
 
-        match Score::get_user_recent(self.config.user_id, &self.config.mode) {
+        match Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails.unwrap_or(false)) {
             Ok(score) => {
                 let Some(score) = score else { return };
-
-                if self.recent_score.as_ref().is_some_and(|recent_score| recent_score.ended_at != score.ended_at) {
-                    self.scrobble(score);
-                }
+                self.scrobble(score);
             },
             Err(error) => {
                 if error.to_string().contains("404") {
@@ -78,8 +77,26 @@ impl Scrobbler {
     }
 
     fn scrobble(&mut self, score: Score) {
+        if self.recent_score.as_ref().is_some_and(|recent_score| recent_score.ended_at == score.ended_at) {
+            return;
+        }
+
         if score.beatmap.total_length < self.config.min_beatmap_length_secs.unwrap_or(60) {
             return;
+        }
+
+        if !score.passed {
+            let Ok(started_at) = DateTime::parse_from_rfc3339(&score.started_at) else { return };
+            let Ok(ended_at) = DateTime::parse_from_rfc3339(&score.ended_at) else { return };
+            let delta = (ended_at - started_at).num_seconds();
+
+            // A valid scrobble should be half of the beatmap's hit length or 4 minutes, whichever occurs earlier
+            // This might go through if the user paused, took a long break, and continued (just to fail some time after)
+            let is_valid_scrobble = delta >= score.beatmap.hit_length as i64 / 2 || delta >= 60 * 4;
+
+            if !is_valid_scrobble {
+                return;
+            }
         }
 
         let (artist_romanized, artist_original) = (&score.beatmapset.artist, &score.beatmapset.artist_unicode);

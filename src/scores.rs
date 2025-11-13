@@ -12,14 +12,16 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Score {
+    pub passed: bool,
+    pub started_at: String,
     pub ended_at: String,
     pub beatmap: Beatmap,
     pub beatmapset: Beatmapset,
 }
 
 impl Score {
-    pub fn get_user_recent(user_id: u64, mode: &Option<Mode>) -> Result<Option<Self>> {
-        let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent"));
+    pub fn get_user_recent(user_id: u64, mode: &Option<Mode>, include_fails: bool) -> Result<Option<Self>> {
+        let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
         if let Some(mode) = mode {
             request = request.query(&[("mode", mode)]);
@@ -102,6 +104,7 @@ impl Score {
 #[derive(Deserialize)]
 pub struct Beatmap {
     pub total_length: u32,
+    pub hit_length: u32,
 }
 
 #[derive(Deserialize)]

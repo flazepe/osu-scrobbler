@@ -16,6 +16,7 @@ pub struct ScrobblerConfig {
     pub mode: Option<Mode>,
     pub use_original_metadata: Option<bool>,
     pub min_beatmap_length_secs: Option<u32>,
+    pub scrobble_fails: Option<bool>,
     pub log_scrobbles: Option<bool>,
     pub artist_redirects: Option<Vec<(String, String)>>,
 }

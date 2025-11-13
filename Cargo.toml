@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1"
+chrono = "0.4"
 colored = "3"
 md5 = "0.8"
 musicbrainz_rs = { version = "0.12", default-features = false, features = ["blocking"] }
