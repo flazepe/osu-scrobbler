@@ -165,6 +165,14 @@ impl Scrobbler {
 
     fn osu_is_running() -> bool {
         let system = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()));
-        system.processes().iter().any(|(_, process)| process.name() == "osu!" || process.name() == "osu!.exe")
+        system.processes().iter().any(|(_, process)| {
+            let name = process.name().to_string_lossy();
+
+            if name.contains("osu") {
+                println!("{name}");
+            }
+
+            name == "osu!" || name == "osu!.exe"
+        })
     }
 }
