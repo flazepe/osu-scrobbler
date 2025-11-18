@@ -2,11 +2,11 @@ mod queries;
 
 use crate::{exit, logger::log_success, scrobbler::REQWEST};
 use anyhow::{Result, bail};
+use chrono::Utc;
 use colored::Colorize;
 use queries::LastfmQuery;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const API_BASE_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 
@@ -62,7 +62,7 @@ impl LastfmScrobbler {
                     .insert("track[0]", title)
                     .insert("album[0]", album.unwrap_or_default())
                     .insert("duration[0]", total_length)
-                    .insert("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
+                    .insert("timestamp[0]", Utc::now().timestamp())
                     .sign(&self.api_secret),
             )
             .send()?
