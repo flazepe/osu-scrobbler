@@ -14,7 +14,7 @@ use serde::Deserialize;
 pub struct Score {
     pub passed: bool,
     pub mods: Vec<ScoreMods>,
-    pub started_at: String,
+    pub started_at: Option<String>,
     pub ended_at: String,
     pub beatmap: Beatmap,
     pub beatmapset: Beatmapset,

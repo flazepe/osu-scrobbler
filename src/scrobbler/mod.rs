@@ -85,8 +85,8 @@ impl Scrobbler {
         }
 
         if !score.passed {
-            let started_at = DateTime::parse_from_rfc3339(&score.started_at);
-            let ended_at = DateTime::parse_from_rfc3339(&score.ended_at);
+            let started_at = score.started_at.as_ref().and_then(|started_at| DateTime::parse_from_rfc3339(started_at).ok());
+            let ended_at = DateTime::parse_from_rfc3339(&score.ended_at).ok();
             let delta =
                 ended_at.and_then(|ended_at| started_at.map(|started_at| (ended_at - started_at).as_seconds_f64())).unwrap_or_default();
 
