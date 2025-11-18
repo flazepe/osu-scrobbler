@@ -60,7 +60,7 @@ impl LastfmScrobbler {
                     .insert("method", "track.scrobble")
                     .insert("artist[0]", artist)
                     .insert("track[0]", title)
-                    .insert("album[0]", album.unwrap_or(""))
+                    .insert("album[0]", album.unwrap_or_default())
                     .insert("duration[0]", total_length)
                     .insert("timestamp[0]", SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
                     .sign(&self.api_secret),

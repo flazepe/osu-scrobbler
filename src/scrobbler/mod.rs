@@ -44,7 +44,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         log_success("Scrobbler", "Started!");
 
-        self.recent_score = Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails).unwrap_or(None);
+        self.recent_score = Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails).unwrap_or_default();
 
         loop {
             self.cooldown_secs = 0;
@@ -87,7 +87,8 @@ impl Scrobbler {
         if !score.passed {
             let started_at = DateTime::parse_from_rfc3339(&score.started_at);
             let ended_at = DateTime::parse_from_rfc3339(&score.ended_at);
-            let delta = ended_at.and_then(|ended_at| started_at.map(|started_at| (ended_at - started_at).as_seconds_f64())).unwrap_or(0.);
+            let delta =
+                ended_at.and_then(|ended_at| started_at.map(|started_at| (ended_at - started_at).as_seconds_f64())).unwrap_or_default();
 
             if delta > 0. {
                 let rate = score
@@ -138,7 +139,7 @@ impl Scrobbler {
             format!(
                 "New score found: {}{} - {} ({})",
                 artist.bright_blue(),
-                redirected_text.as_deref().unwrap_or(""),
+                redirected_text.as_deref().unwrap_or_default(),
                 title.bright_blue(),
                 album.as_deref().unwrap_or("Unknown Album").bright_blue(),
             ),
