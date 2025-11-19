@@ -64,20 +64,20 @@ impl Scrobbler {
         match Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails) {
             Ok(score) => {
                 let Some(score) = score else { return };
-                self.scrobble(score);
+                self.scrobble(&score);
+                self.recent_score = Some(score);
             },
             Err(error) => {
                 if error.to_string().contains("404") {
                     exit!("Scrobbler", "Invalid osu! user ID given.");
                 }
-
                 log_error("Scrobbler", error);
                 self.cooldown_secs += 10;
             },
         }
     }
 
-    fn scrobble(&mut self, score: Score) {
+    fn scrobble(&mut self, score: &Score) {
         if self.recent_score.as_ref().is_some_and(|recent_score| recent_score.ended_at == score.ended_at) {
             return;
         }
@@ -123,7 +123,7 @@ impl Scrobbler {
             title = title_original;
         }
 
-        if let Err(error) = self.process_blacklist(&score) {
+        if let Err(error) = self.process_blacklist(score) {
             log_warn(
                 "Scrobbler",
                 format!(
@@ -178,8 +178,6 @@ impl Scrobbler {
                 Err(error) => log_error("\tListenBrainz", error),
             };
         }
-
-        self.recent_score = Some(score);
     }
 
     fn process_blacklist(&mut self, score: &Score) -> Result<()> {
