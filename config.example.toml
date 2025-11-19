@@ -1,21 +1,50 @@
+#
+# (required) The scrobbler configuration
+#
 [scrobbler]
-user_id = 8834263 # Your osu! user ID
-mode = "osu" # (optional) The osu! mode to scrobble. Possible values: "osu", "taiko", "fruits", "mania" (default: user's default mode)
-use_original_metadata = true # (optional) Whether to use original metadata instead of romanized metadata (default: true)
-min_beatmap_length_secs = 60 # (optional) The minimum beatmap length to scrobble (in seconds) (default: 60)
-scrobble_fails = true # (optional) Whether to scrobble failed plays. The failed duration must at least be 50% of the entire beatmap or 4 minutes (default: false)
-log_scrobbles = false # (optional) Whether to log scrobbles to a file (default: false)
-artist_redirects = [ # (optional) An array of tuples that contain the old and new artist name to replace with before scrobbling
-    ["96猫", "Kuroneko"],
-]
 
-# This section can be omitted if you do not use Last.fm
+# Your osu! user ID
+user_id = 8834263
+
+# (optional) The osu! mode to scrobble. Possible values: "osu", "taiko", "fruits", "mania" (default: user's default mode)
+mode = "osu"
+
+# (optional) Whether to use original metadata instead of romanized metadata (default: true)
+use_original_metadata = true
+
+# (optional) The minimum beatmap length to scrobble (in seconds) (default: 60)
+min_beatmap_length_secs = 60
+
+# (optional) Whether to scrobble failed plays. On osu!lazer, the failed duration must at least be 50% of the entire beatmap or 4 minutes (default: false)
+scrobble_fails = true
+
+# (optional) Whether to log scrobbles to a file (default: false)
+log_scrobbles = false
+
+# (optional) A list of tuples that contain the old and new artist name to replace with before scrobbling (case-insensitive)
+artist_redirects = [["old artist", "new artist"]]
+
+#
+# The Last.fm configuration. Optional to omit if you're already using at least one other scrobbler
+#
 [last_fm]
-username = "username" # Your Last.fm username
-password = "password" # Your Last.fm password
-api_key = "api_key" # Your Last.fm API key
-api_secret = "api_secret" # Your Last.fm API secret
 
-# This section can be omitted if you do not use ListenBrainz
+# (required) Your Last.fm username
+username = "username" # Your Last.fm username
+
+# (required) Your Last.fm password
+password = "password"
+
+# (required) # Your Last.fm API key
+api_key = "api_key"
+
+# (required) Your Last.fm API secret
+api_secret = "api_secret"
+
+#
+# The ListenBrainz configuration. Optional to omit if you're already using at least one other scrobbler
+#
 [listenbrainz]
-user_token = "user_token" # Your ListenBrainz user token
+
+# (required) Your ListenBrainz user token
+user_token = "user_token"
