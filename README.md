@@ -53,19 +53,21 @@ The scrobbler configuration
 -   `artist_redirects`
 
     -   A list of tuples that contain the old and new artist name to replace with before scrobbling (case-insensitive)
-    -   Example: `[["96猫", "Kuroneko"]]`
+    -   Example: `[["96猫", "Kuroneko"], ["ツユ", "TUYU"]]`
 
 -   `artist_regex_redirects`
 
     -   A list of tuples that contain a regex pattern and replacer string to replace artists with before scrobbling (case-sensitive)
     -   The regex should account for the original metadata instead of the romanized data, unless `use_original_metadata` is set to `false`
-    -   Example: `[["(.+) \\(?feat\\. (.+)\\)?", "$1"]]`
+    -   Put more ambiguous patterns last, since the program only finds the first match to replace
+    -   Example: `[["(.+) feat\\. ななひら", "Nanahira"], ["(.+) feat\\. .+", "$1"]]`
 
 -   `title_regex_redirects`
 
     -   A list of tuples that contain a regex pattern and replacer string to replace titles with before scrobbling (case-sensitive)
     -   The regex should account for the original metadata instead of the romanized data, unless `use_original_metadata` is set to `false`
-    -   Example: `[["(.+) \\(?feat\\. (.+)\\)?", "$1"], ["(.+) (?i:\\(TV Size\\))", "$1"]]`
+    -   Put more ambiguous patterns last, since the program only finds the first match to replace
+    -   Example: `[["(.+) (?i:\\(TV Size\\))", "$1"], ["(.+) (?i:\\(.+ Remix\\))", "$1"]]`
 
 ### `[scrobbler.blacklist.artists]`
 
