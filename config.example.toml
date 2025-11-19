@@ -33,7 +33,7 @@ artist_redirects = [["old artist", "new artist"]]
 equals = []
 
 # (optional) A list of words inside an artist to blacklist (case-insensitive)
-contains_word = []
+contains_words = []
 
 #
 # (optional) Titles to blacklist from scrobbling
@@ -44,7 +44,7 @@ contains_word = []
 equals = []
 
 # (optional) A list of words inside a title to blacklist (case-insensitive)
-contains_word = []
+contains_words = []
 
 #
 # (optional) Difficulties to blacklist from scrobbling
@@ -55,10 +55,10 @@ contains_word = []
 equals = []
 
 # (optional) A list of words inside a difficulty to blacklist (case-insensitive)
-contains_word = []
+contains_words = []
 
 #
-# The Last.fm configuration. Optional to omit if you're already using at least one other scrobbler
+# The Last.fm configuration. Can be omitted if you're already using at least one other scrobbler
 #
 [last_fm]
 
@@ -75,7 +75,7 @@ api_key = "api_key"
 api_secret = "api_secret"
 
 #
-# The ListenBrainz configuration. Optional to omit if you're already using at least one other scrobbler
+# The ListenBrainz configuration. Can be omitted if you're already using at least one other scrobbler
 #
 [listenbrainz]
 

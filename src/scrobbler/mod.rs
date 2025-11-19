@@ -180,7 +180,7 @@ impl Scrobbler {
             .config
             .blacklist
             .artists
-            .contains_word
+            .contains_words
             .iter()
             .find(|word| boundary_match(&artist_romanized, word) || boundary_match(&artist_original, word))
         {
@@ -191,14 +191,14 @@ impl Scrobbler {
             .config
             .blacklist
             .titles
-            .contains_word
+            .contains_words
             .iter()
             .find(|word| boundary_match(&title_romanized, word) || boundary_match(&title_original, word))
         {
             bail!("Beatmapset title contains a blacklisted word ({}).", word.bright_red());
         }
 
-        if let Some(word) = self.config.blacklist.difficulties.contains_word.iter().find(|word| boundary_match(&difficulty, word)) {
+        if let Some(word) = self.config.blacklist.difficulties.contains_words.iter().find(|word| boundary_match(&difficulty, word)) {
             bail!("Beatmapset difficulty contains a blacklisted word ({}).", word.bright_red());
         }
 

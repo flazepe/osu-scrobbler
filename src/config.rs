@@ -73,7 +73,7 @@ pub struct ScrobblerBlacklistTypeConfig {
     pub equals: Vec<String>,
 
     #[serde(deserialize_with = "deserialize_case_insensitive_vec")]
-    pub contains_word: Vec<String>,
+    pub contains_words: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
