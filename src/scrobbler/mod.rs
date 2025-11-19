@@ -4,10 +4,11 @@ mod listenbrainz;
 use crate::{
     config::{Config, ScrobblerConfig},
     exit,
-    logger::{log_error, log_file, log_success},
+    logger::{log_error, log_file, log_success, log_warn},
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
+use anyhow::{Result, bail};
 use chrono::DateTime;
 use colored::Colorize;
 use reqwest::blocking::Client;
@@ -122,6 +123,20 @@ impl Scrobbler {
             title = title_original;
         }
 
+        if let Err(error) = self.process_blacklist(&score) {
+            log_warn(
+                "Scrobbler",
+                format!(
+                    "Skipping scrobble of score {} - {} ({}): {error}",
+                    artist.bright_blue(),
+                    title.bright_blue(),
+                    score.beatmap.version.bright_blue(),
+                ),
+            );
+
+            return;
+        }
+
         let redirected_text = self
             .config
             .artist_redirects
@@ -165,6 +180,56 @@ impl Scrobbler {
         }
 
         self.recent_score = Some(score);
+    }
+
+    fn process_blacklist(&mut self, score: &Score) -> Result<()> {
+        let artist_unicode_lowercase = score.beatmapset.artist_unicode.to_lowercase();
+        let artist_lowercase = score.beatmapset.artist.to_lowercase();
+
+        if self.config.blacklist.artists.equals.contains(&artist_unicode_lowercase)
+            || self.config.blacklist.artists.equals.contains(&artist_lowercase)
+        {
+            bail!("Beatmapset artist is blacklisted.");
+        }
+
+        let title_unicode_lowercase = score.beatmapset.title_unicode.to_lowercase();
+        let title_lowercase = score.beatmapset.title.to_lowercase();
+
+        if self.config.blacklist.titles.equals.contains(&title_unicode_lowercase)
+            || self.config.blacklist.titles.equals.contains(&title_lowercase)
+        {
+            bail!("Beatmapset title is blacklisted.");
+        }
+
+        let difficulty_lowercase = score.beatmap.version.to_lowercase();
+
+        if self.config.blacklist.difficulties.equals.contains(&difficulty_lowercase) {
+            bail!("Beatmap difficulty is blacklisted.");
+        }
+
+        let mut artist_words = vec![];
+        artist_words.append(&mut artist_unicode_lowercase.split_whitespace().collect::<Vec<&str>>());
+        artist_words.append(&mut artist_lowercase.split_whitespace().collect::<Vec<&str>>());
+
+        if let Some(word) = self.config.blacklist.artists.contains_word.iter().find(|word| artist_words.contains(&word.as_str())) {
+            bail!("Beatmapset artist contains a blacklisted word ({}).", word.bright_red());
+        }
+
+        let mut title_words = vec![];
+        title_words.append(&mut title_unicode_lowercase.split_whitespace().collect::<Vec<&str>>());
+        title_words.append(&mut title_lowercase.split_whitespace().collect::<Vec<&str>>());
+
+        if let Some(word) = self.config.blacklist.titles.contains_word.iter().find(|word| title_words.contains(&word.as_str())) {
+            bail!("Beatmapset title contains a blacklisted word ({}).", word.bright_red());
+        }
+
+        let difficulty_words = difficulty_lowercase.split_whitespace().collect::<Vec<&str>>();
+
+        if let Some(word) = self.config.blacklist.difficulties.contains_word.iter().find(|word| difficulty_words.contains(&word.as_str())) {
+            bail!("Beatmapset difficulty contains a blacklisted word ({}).", word.bright_red());
+        }
+
+        Ok(())
     }
 
     fn osu_is_running() -> bool {

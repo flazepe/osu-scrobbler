@@ -25,6 +25,39 @@ log_scrobbles = false
 artist_redirects = [["old artist", "new artist"]]
 
 #
+# (optional) Artists to blacklist from scrobbling
+#
+[scrobbler.blacklist.artists]
+
+# (optional) A list of equal matches to blacklist inside an artist (case-insensitive)
+equals = []
+
+# (optional) A list of artists to blacklist (case-insensitive)
+contains_word = []
+
+#
+# (optional) Titles to blacklist from scrobbling
+#
+[scrobbler.blacklist.titles]
+
+# (optional) A list of equal matches to blacklist inside a title (case-insensitive)
+equals = []
+
+# (optional) A list of titles blacklist (case-insensitive)
+contains_word = []
+
+#
+# (optional) Difficulties to blacklist from scrobbling
+#
+[scrobbler.blacklist.difficulties]
+
+# (optional) A list difficulties to blacklist (case-insensitive)
+equals = []
+
+# (optional) A list of keywords to blacklist inside a difficulty (case-insensitive)
+contains_word = []
+
+#
 # The Last.fm configuration. Optional to omit if you're already using at least one other scrobbler
 #
 [last_fm]

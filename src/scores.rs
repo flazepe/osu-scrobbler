@@ -115,6 +115,7 @@ impl Score {
 
 #[derive(Deserialize, Debug)]
 pub struct Beatmap {
+    pub version: String,
     pub total_length: u32,
     pub hit_length: u32,
 }

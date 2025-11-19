@@ -1,6 +1,13 @@
 use crate::exit;
-use serde::{Deserialize, Serialize};
-use std::{env::var, fs::read_to_string};
+use serde::{
+    Deserialize, Deserializer, Serialize,
+    de::{SeqAccess, Visitor},
+};
+use std::{
+    env::var,
+    fmt::{Formatter, Result as FmtResult},
+    fs::read_to_string,
+};
 use toml::from_str;
 
 #[derive(Deserialize, Debug)]
@@ -29,6 +36,9 @@ pub struct ScrobblerConfig {
 
     #[serde(default)]
     pub artist_redirects: Vec<(String, String)>,
+
+    #[serde(default)]
+    pub blacklist: ScrobblerBlacklistConfig,
 }
 
 impl ScrobblerConfig {
@@ -48,6 +58,22 @@ pub enum Mode {
     Taiko,
     Fruits,
     Mania,
+}
+
+#[derive(Deserialize, Default, Debug)]
+pub struct ScrobblerBlacklistConfig {
+    pub artists: ScrobblerBlacklistTypeConfig,
+    pub titles: ScrobblerBlacklistTypeConfig,
+    pub difficulties: ScrobblerBlacklistTypeConfig,
+}
+
+#[derive(Deserialize, Default, Debug)]
+pub struct ScrobblerBlacklistTypeConfig {
+    #[serde(deserialize_with = "deserialize_case_insensitive_vec")]
+    pub equals: Vec<String>,
+
+    #[serde(deserialize_with = "deserialize_case_insensitive_vec")]
+    pub contains_word: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -71,4 +97,34 @@ impl Config {
 
         from_str(&config_string).unwrap_or_else(|error| exit!("Config", format!("Error parsing config file: {error}")))
     }
+}
+
+fn deserialize_case_insensitive_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct CaseInsensitiveVecVisitor;
+
+    impl<'de> Visitor<'de> for CaseInsensitiveVecVisitor {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut Formatter) -> FmtResult {
+            formatter.write_str("an array of strings")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
+
+            while let Some(element) = seq.next_element::<String>()? {
+                vec.push(element.to_lowercase());
+            }
+
+            Ok(vec)
+        }
+    }
+
+    deserializer.deserialize_seq(CaseInsensitiveVecVisitor)
 }
