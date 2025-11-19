@@ -58,14 +58,14 @@ The scrobbler configuration
 -   `artist_regex_redirects`
 
     -   A list of tuples that contain a regex pattern and replacer string to replace artists with before scrobbling (case-sensitive)
-    -   The regex should account for the original metadata instead of the romanized data, unless `use_original_metadata` is set to `false`
+    -   The regex should account for the original metadata instead of the romanized metadata, unless `use_original_metadata` is set to `false`
     -   Put more ambiguous patterns last, since the program only finds the first match to replace
     -   Example: `[["(.+) feat\\. ななひら", "Nanahira"], ["(.+) feat\\. .+", "$1"]]`
 
 -   `title_regex_redirects`
 
     -   A list of tuples that contain a regex pattern and replacer string to replace titles with before scrobbling (case-sensitive)
-    -   The regex should account for the original metadata instead of the romanized data, unless `use_original_metadata` is set to `false`
+    -   The regex should account for the original metadata instead of the romanized metadata, unless `use_original_metadata` is set to `false`
     -   Put more ambiguous patterns last, since the program only finds the first match to replace
     -   Example: `[["(.+) (?i:\\(TV Size\\))", "$1"], ["(.+) (?i:\\(.+ Remix\\))", "$1"]]`
 
