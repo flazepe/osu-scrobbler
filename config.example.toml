@@ -29,10 +29,10 @@ artist_redirects = [["old artist", "new artist"]]
 #
 [scrobbler.blacklist.artists]
 
-# (optional) A list of equal matches to blacklist inside an artist (case-insensitive)
+# (optional) A list of artists to blacklist (case-insensitive)
 equals = []
 
-# (optional) A list of artists to blacklist (case-insensitive)
+# (optional) A list of words inside an artist to blacklist (case-insensitive)
 contains_word = []
 
 #
@@ -40,10 +40,10 @@ contains_word = []
 #
 [scrobbler.blacklist.titles]
 
-# (optional) A list of equal matches to blacklist inside a title (case-insensitive)
+# (optional) A list of titles to blacklist (case-insensitive)
 equals = []
 
-# (optional) A list of titles blacklist (case-insensitive)
+# (optional) A list of words inside a title to blacklist (case-insensitive)
 contains_word = []
 
 #
@@ -54,7 +54,7 @@ contains_word = []
 # (optional) A list difficulties to blacklist (case-insensitive)
 equals = []
 
-# (optional) A list of keywords to blacklist inside a difficulty (case-insensitive)
+# (optional) A list of words inside a difficulty to blacklist (case-insensitive)
 contains_word = []
 
 #
@@ -63,7 +63,7 @@ contains_word = []
 [last_fm]
 
 # (required) Your Last.fm username
-username = "username" # Your Last.fm username
+username = "username"
 
 # (required) Your Last.fm password
 password = "password"
