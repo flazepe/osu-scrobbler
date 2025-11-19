@@ -116,10 +116,7 @@ impl Config {
     }
 }
 
-fn deserialize_case_insensitive_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
+fn deserialize_case_insensitive_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
     struct CaseInsensitiveVecVisitor;
 
     impl<'de> Visitor<'de> for CaseInsensitiveVecVisitor {
@@ -129,10 +126,7 @@ where
             formatter.write_str("an array of strings")
         }
 
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: SeqAccess<'de>,
-        {
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
             let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
             while let Some(element) = seq.next_element::<String>()? {
@@ -146,10 +140,7 @@ where
     deserializer.deserialize_seq(CaseInsensitiveVecVisitor)
 }
 
-fn deserialize_regex_vec<'de, D>(deserializer: D) -> Result<Vec<Regex>, D::Error>
-where
-    D: Deserializer<'de>,
-{
+fn deserialize_regex_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<Regex>, D::Error> {
     struct RegexVecVisitor;
 
     impl<'de> Visitor<'de> for RegexVecVisitor {
@@ -159,10 +150,7 @@ where
             formatter.write_str("an array of regex pattern strings")
         }
 
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: SeqAccess<'de>,
-        {
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
             let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
             while let Some(regex_pattern_string) = seq.next_element::<String>()? {
@@ -180,10 +168,7 @@ where
     deserializer.deserialize_seq(RegexVecVisitor)
 }
 
-fn deserialize_regex_redirects_vec<'de, D>(deserializer: D) -> Result<Vec<(Regex, String)>, D::Error>
-where
-    D: Deserializer<'de>,
-{
+fn deserialize_regex_redirects_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<(Regex, String)>, D::Error> {
     struct RegexRedirectsVecVisitor;
 
     impl<'de> Visitor<'de> for RegexRedirectsVecVisitor {
@@ -193,10 +178,7 @@ where
             formatter.write_str("an array of tuples containing a regex pattern and replacer string")
         }
 
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: SeqAccess<'de>,
-        {
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
             let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
             while let Some((regex_pattern_string, regex_replacer_string)) = seq.next_element::<(String, String)>()? {
