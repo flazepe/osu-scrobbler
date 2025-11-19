@@ -212,7 +212,7 @@ impl Scrobbler {
             .iter()
             .find(|regex| regex.is_match(&score.beatmapset.artist) || regex.is_match(&score.beatmapset.artist_unicode))
         {
-            bail!("Beatmapset artist contains a blacklisted regex ({}).", regex.as_str().bright_red());
+            bail!("Beatmapset artist matches a blacklisted regex ({}).", regex.as_str().bright_red());
         }
 
         let (title_romanized, title_original) = (score.beatmapset.title.to_lowercase(), score.beatmapset.title_unicode.to_lowercase());
@@ -240,7 +240,7 @@ impl Scrobbler {
             .iter()
             .find(|regex| regex.is_match(&score.beatmapset.title) || regex.is_match(&score.beatmapset.title_unicode))
         {
-            bail!("Beatmapset title contains a blacklisted regex ({}).", regex.as_str().bright_red());
+            bail!("Beatmapset title matches a blacklisted regex ({}).", regex.as_str().bright_red());
         }
 
         let difficulty = score.beatmap.version.to_lowercase();
@@ -250,11 +250,11 @@ impl Scrobbler {
         }
 
         if let Some(word) = self.config.blacklist.difficulties.contains_words.iter().find(|word| boundary_match(&difficulty, word)) {
-            bail!("Beatmapset difficulty contains a blacklisted word ({}).", word.bright_red());
+            bail!("Beatmap difficulty contains a blacklisted word ({}).", word.bright_red());
         }
 
         if let Some(regex) = self.config.blacklist.difficulties.matches_regex.iter().find(|regex| regex.is_match(&score.beatmap.version)) {
-            bail!("Beatmapset difficulty contains a blacklisted regex ({}).", regex.as_str().bright_red());
+            bail!("Beatmap difficulty matches a blacklisted regex ({}).", regex.as_str().bright_red());
         }
 
         if score.beatmap.total_length < self.config.min_beatmap_length_secs {
