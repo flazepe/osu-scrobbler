@@ -10,6 +10,7 @@ use serde::Deserialize;
 
 const API_BASE_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 
+#[derive(Debug)]
 pub struct LastfmScrobbler {
     pub api_key: String,
     pub api_secret: String,

@@ -9,6 +9,7 @@ use serde::Deserialize;
 
 const API_BASE_URL: &str = "https://api.listenbrainz.org/1";
 
+#[derive(Debug)]
 pub struct ListenBrainzScrobbler {
     pub user_token: String,
 }

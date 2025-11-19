@@ -16,6 +16,7 @@ use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
+#[derive(Debug)]
 pub struct Scrobbler {
     config: ScrobblerConfig,
     last_fm: Option<LastfmScrobbler>,

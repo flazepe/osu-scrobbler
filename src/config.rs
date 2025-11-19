@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::{env::var, fs::read_to_string};
 use toml::from_str;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Config {
     pub scrobbler: ScrobblerConfig,
     pub last_fm: Option<LastfmConfig>,
     pub listenbrainz: Option<ListenBrainzConfig>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ScrobblerConfig {
     pub user_id: u64,
     pub mode: Option<Mode>,
@@ -41,7 +41,7 @@ impl ScrobblerConfig {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
     Osu,
@@ -50,7 +50,7 @@ pub enum Mode {
     Mania,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct LastfmConfig {
     pub username: String,
     pub password: String,
@@ -58,7 +58,7 @@ pub struct LastfmConfig {
     pub api_secret: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ListenBrainzConfig {
     pub user_token: String,
 }

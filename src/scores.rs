@@ -10,7 +10,7 @@ use musicbrainz_rs::{
 use reqwest::{StatusCode, blocking::Client};
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Score {
     pub passed: bool,
     pub mods: Vec<ScoreMods>,
@@ -20,13 +20,13 @@ pub struct Score {
     pub beatmapset: Beatmapset,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ScoreMods {
     pub acronym: String,
     pub settings: Option<ScoreModSettings>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ScoreModSettings {
     pub speed_change: Option<f64>,
 }
@@ -113,13 +113,13 @@ impl Score {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Beatmap {
     pub total_length: u32,
     pub hit_length: u32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Beatmapset {
     pub artist: String,
     pub artist_unicode: String,
