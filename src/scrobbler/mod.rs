@@ -108,28 +108,30 @@ impl Scrobbler {
             return;
         }
 
-        let redirected_text = self
-            .config
-            .artist_redirects
-            .iter()
-            .find(|(old, new)| {
-                [artist_original.to_lowercase(), artist_romanized.to_lowercase()].contains(&old.to_lowercase())
-                    && new.to_lowercase() != artist.to_lowercase()
-            })
-            .map(|(old, new)| {
-                artist = new;
-                format!(" (redirected from {})", old.bright_blue())
-            });
+        let (new_artist, new_title) = self.handle_redirects(score, artist, title);
+
+        let artist_redirected_text = new_artist.as_ref().map(|new_artist| {
+            let old_artist = artist;
+            artist = new_artist;
+            format!(" (redirected from {})", old_artist.bright_blue())
+        });
+
+        let title_redirected_text = new_title.as_ref().map(|new_title| {
+            let old_title = title;
+            title = new_title;
+            format!(" (redirected from {})", old_title.bright_blue())
+        });
 
         let album = score.get_album_name();
 
         log_success(
             "Scrobbler",
             format!(
-                "New score found: {}{} - {} ({})",
+                "New score found: {}{} - {}{} ({})",
                 artist.bright_blue(),
-                redirected_text.as_deref().unwrap_or_default(),
+                artist_redirected_text.as_deref().unwrap_or_default(),
                 title.bright_blue(),
+                title_redirected_text.as_deref().unwrap_or_default(),
                 album.as_deref().unwrap_or("Unknown Album").bright_blue(),
             ),
         );
@@ -153,7 +155,35 @@ impl Scrobbler {
         }
     }
 
-    fn validate_scrobble(&mut self, score: &Score) -> Result<()> {
+    fn handle_redirects(&self, score: &Score, artist: &str, title: &str) -> (Option<String>, Option<String>) {
+        let artists = [score.beatmapset.artist.to_lowercase(), score.beatmapset.artist_unicode.to_lowercase()];
+
+        if let Some((_, new_artist)) = self.config.artist_redirects.iter().find(|(old, _)| artists.contains(&old.to_lowercase())) {
+            return (Some(new_artist.clone()), None);
+        }
+
+        let mut new_artist = None;
+
+        for (regex, replacer) in &self.config.artist_regex_redirects {
+            if regex.is_match(artist) {
+                new_artist = Some(regex.replace(artist, replacer).to_string());
+                break;
+            }
+        }
+
+        let mut new_title = None;
+
+        for (regex, replacer) in &self.config.title_regex_redirects {
+            if regex.is_match(title) {
+                new_title = Some(regex.replace(title, replacer).to_string());
+                break;
+            }
+        }
+
+        (new_artist, new_title)
+    }
+
+    fn validate_scrobble(&self, score: &Score) -> Result<()> {
         let boundary_match = |haystack, word| Regex::new(&format!("\\b{}\\b", escape(word))).unwrap().is_match(haystack);
         let (artist_romanized, artist_original) = (score.beatmapset.artist.to_lowercase(), score.beatmapset.artist_unicode.to_lowercase());
 

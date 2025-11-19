@@ -40,6 +40,12 @@ pub struct ScrobblerConfig {
     #[serde(default)]
     pub artist_redirects: Vec<(String, String)>,
 
+    #[serde(deserialize_with = "deserialize_regex_redirects_vec", default)]
+    pub artist_regex_redirects: Vec<(Regex, String)>,
+
+    #[serde(deserialize_with = "deserialize_regex_redirects_vec", default)]
+    pub title_regex_redirects: Vec<(Regex, String)>,
+
     #[serde(default)]
     pub blacklist: ScrobblerBlacklistConfig,
 }
@@ -99,9 +105,9 @@ impl Config {
     pub fn get() -> Self {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
         let config_path = env_config_path.as_deref().unwrap_or("config.toml");
-        let config_string = read_to_string(config_path).unwrap_or_else(|_| exit!("Config", "No config file found."));
+        let config_string = read_to_string(config_path).context("Config file not found.").unwrap_or_else(|error| exit!("Config", error));
 
-        from_str(&config_string).unwrap_or_else(|error| exit!("Config", format!("Error parsing config file: {error}")))
+        from_str(&config_string).context("An error occurred while parsing config file.").unwrap_or_else(|error| exit!("Config", error))
     }
 }
 
@@ -154,12 +160,12 @@ where
         {
             let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
-            while let Some(element) = seq.next_element::<String>()? {
-                vec.push(
-                    Regex::new(&element)
-                        .context(format!("Invalid regex pattern: {}", element.bright_red()))
-                        .unwrap_or_else(|error| exit!("Config", error)),
-                );
+            while let Some(regex_pattern_string) = seq.next_element::<String>()? {
+                let regex = Regex::new(&regex_pattern_string)
+                    .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
+                    .unwrap_or_else(|error| exit!("Config", error));
+
+                vec.push(regex);
             }
 
             Ok(vec)
@@ -167,4 +173,38 @@ where
     }
 
     deserializer.deserialize_seq(RegexVecVisitor)
+}
+
+fn deserialize_regex_redirects_vec<'de, D>(deserializer: D) -> Result<Vec<(Regex, String)>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct RegexRedirectsVecVisitor;
+
+    impl<'de> Visitor<'de> for RegexRedirectsVecVisitor {
+        type Value = Vec<(Regex, String)>;
+
+        fn expecting(&self, formatter: &mut Formatter) -> FmtResult {
+            formatter.write_str("an array of tuples containing a regex pattern and replacer string")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
+
+            while let Some((regex_pattern_string, regex_replacer_string)) = seq.next_element::<(String, String)>()? {
+                let regex = Regex::new(&regex_pattern_string)
+                    .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
+                    .unwrap_or_else(|error| exit!("Config", error));
+
+                vec.push((regex, regex_replacer_string));
+            }
+
+            Ok(vec)
+        }
+    }
+
+    deserializer.deserialize_seq(RegexRedirectsVecVisitor)
 }
