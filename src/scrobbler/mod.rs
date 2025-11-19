@@ -3,8 +3,7 @@ mod listenbrainz;
 
 use crate::{
     config::{Config, ScrobblerConfig},
-    exit,
-    logger::{log_error, log_file, log_success, log_warn},
+    logger::Logger,
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
 };
@@ -13,14 +12,14 @@ use chrono::DateTime;
 use colored::Colorize;
 use regex::{Regex, escape};
 use reqwest::blocking::Client;
-use std::{sync::LazyLock, thread::sleep, time::Duration};
+use std::{fmt::Display, io::stdin, process::exit, sync::LazyLock, thread::sleep, time::Duration};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
 #[derive(Debug)]
 pub struct Scrobbler {
-    config: ScrobblerConfig,
+    pub config: ScrobblerConfig,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
@@ -32,22 +31,22 @@ impl Scrobbler {
         let config = Config::get();
 
         if config.last_fm.is_none() && config.listenbrainz.is_none() {
-            exit!("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
+            Self::exit("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
         }
 
         Self {
             config: config.scrobbler,
-            last_fm: config.last_fm.map(|config| LastfmScrobbler::new(config.username, config.password, config.api_key, config.api_secret)),
-            listenbrainz: config.listenbrainz.map(|config| ListenBrainzScrobbler::new(config.user_token)),
+            last_fm: config.last_fm.map(LastfmScrobbler::new),
+            listenbrainz: config.listenbrainz.map(ListenBrainzScrobbler::new),
             recent_score: None,
             cooldown_secs: 0,
         }
     }
 
     pub fn start(&mut self) {
-        log_success("Scrobbler", "Started!");
+        Logger::success("Scrobbler", "Started!");
 
-        self.recent_score = Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails).unwrap_or_default();
+        self.recent_score = Score::get_user_recent(&self.config).unwrap_or_default();
 
         loop {
             self.cooldown_secs = 0;
@@ -62,7 +61,7 @@ impl Scrobbler {
             return;
         }
 
-        match Score::get_user_recent(self.config.user_id, &self.config.mode, self.config.scrobble_fails) {
+        match Score::get_user_recent(&self.config) {
             Ok(score) => {
                 let Some(score) = score else { return };
                 self.scrobble(&score);
@@ -70,9 +69,9 @@ impl Scrobbler {
             },
             Err(error) => {
                 if error.to_string().contains("404") {
-                    exit!("Scrobbler", "Invalid osu! user ID given.");
+                    Self::exit("Scrobbler", "Invalid osu! user ID given.");
                 }
-                log_error("Scrobbler", error);
+                Logger::error("Scrobbler", error);
                 self.cooldown_secs += 10;
             },
         }
@@ -95,7 +94,7 @@ impl Scrobbler {
         }
 
         if let Err(error) = self.validate_scrobble(score) {
-            log_warn(
+            Logger::warn(
                 "Scrobbler",
                 format!(
                     "Skipping score {} - {} [{}]: {error}",
@@ -124,7 +123,7 @@ impl Scrobbler {
 
         let album = score.get_album_name();
 
-        log_success(
+        Logger::success(
             "Scrobbler",
             format!(
                 "New score found: {}{} - {}{} ({})",
@@ -137,20 +136,20 @@ impl Scrobbler {
         );
 
         if self.config.log_scrobbles {
-            log_file(format!("[{}] {artist} - {title}", score.ended_at));
+            Logger::file(format!("[{}] {artist} - {title}", score.ended_at));
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
             match last_fm.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
-                Ok(_) => log_success("\tLast.fm", "Successfully scrobbled score."),
-                Err(error) => log_error("\tLast.fm", error),
+                Ok(_) => Logger::success("\tLast.fm", "Successfully scrobbled score."),
+                Err(error) => Logger::error("\tLast.fm", error),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
             match listenbrainz.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
-                Ok(_) => log_success("\tListenBrainz", "Successfully scrobbled score."),
-                Err(error) => log_error("\tListenBrainz", error),
+                Ok(_) => Logger::success("\tListenBrainz", "Successfully scrobbled score."),
+                Err(error) => Logger::error("\tListenBrainz", error),
             };
         }
     }
@@ -276,7 +275,7 @@ impl Scrobbler {
                     .mods
                     .iter()
                     .find(|score_mod| score_mod.acronym == "DT" || score_mod.acronym == "NC")
-                    .and_then(|dt_or_nc_mod| dt_or_nc_mod.settings.as_ref().map(|settings| settings.speed_change.unwrap_or(1.5)))
+                    .and_then(|score_mod| score_mod.settings.as_ref().map(|settings| settings.speed_change.unwrap_or(1.5)))
                     .unwrap_or(1.);
                 let hit_length = score.beatmap.hit_length as f64 / rate;
 
@@ -296,5 +295,12 @@ impl Scrobbler {
     fn osu_is_running() -> bool {
         let system = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()));
         system.processes().iter().any(|(_, process)| process.name() == "osu!" || process.name() == "osu!.exe")
+    }
+
+    pub fn exit<T: Display>(tag: &str, message: T) -> ! {
+        Logger::error(tag, message);
+        println!("Press enter to exit.");
+        let _ = stdin().read_line(&mut String::new());
+        exit(1);
     }
 }

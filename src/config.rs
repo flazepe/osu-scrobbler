@@ -1,4 +1,4 @@
-use crate::exit;
+use crate::scrobbler::Scrobbler;
 use anyhow::Context;
 use colored::Colorize;
 use regex::Regex;
@@ -23,7 +23,9 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 pub struct ScrobblerConfig {
     pub user_id: u64,
-    pub mode: Option<Mode>,
+
+    #[serde(default)]
+    pub mode: Mode,
 
     #[serde(default = "ScrobblerConfig::use_original_metadata_default")]
     pub use_original_metadata: bool,
@@ -60,10 +62,12 @@ impl ScrobblerConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
+    #[default]
     Default,
+
     Osu,
     Taiko,
     Fruits,
@@ -108,11 +112,11 @@ impl Config {
         let config_path = env_config_path.as_deref().unwrap_or("config.toml");
         let config_string = read_to_string(config_path)
             .context("An error occurred while trying to read config file.")
-            .unwrap_or_else(|error| exit!("Config", format!("{error:?}")));
+            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
 
         from_str(&config_string)
             .context("An error occurred while parsing config file.")
-            .unwrap_or_else(|error| exit!("Config", format!("{error:?}")))
+            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")))
     }
 }
 
@@ -156,7 +160,7 @@ fn deserialize_regex_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<V
             while let Some(regex_pattern_string) = seq.next_element::<String>()? {
                 let regex = Regex::new(&regex_pattern_string)
                     .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| exit!("Config", format!("{error:?}")));
+                    .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
 
                 vec.push(regex);
             }
@@ -184,7 +188,7 @@ fn deserialize_regex_redirects_vec<'de, D: Deserializer<'de>>(deserializer: D) -
             while let Some((regex_pattern_string, regex_replacer_string)) = seq.next_element::<(String, String)>()? {
                 let regex = Regex::new(&regex_pattern_string)
                     .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| exit!("Config", format!("{error:?}")));
+                    .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
 
                 vec.push((regex, regex_replacer_string));
             }
