@@ -43,7 +43,7 @@ impl Score {
 
         let response = match request.send() {
             Ok(response) => response,
-            Err(error) => bail!("Could not send request to get user's recent score: {error}"),
+            Err(error) => bail!("Could not send request to get user's recent score: {error:?}"),
         };
 
         let status_code = response.status();

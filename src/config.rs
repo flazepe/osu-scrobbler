@@ -106,9 +106,13 @@ impl Config {
     pub fn get() -> Self {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
         let config_path = env_config_path.as_deref().unwrap_or("config.toml");
-        let config_string = read_to_string(config_path).context("Config file not found.").unwrap_or_else(|error| exit!("Config", error));
+        let config_string = read_to_string(config_path)
+            .context("An error occurred while trying to read config file.")
+            .unwrap_or_else(|error| exit!("Config", format!("{error:?}")));
 
-        from_str(&config_string).context("An error occurred while parsing config file.").unwrap_or_else(|error| exit!("Config", error))
+        from_str(&config_string)
+            .context("An error occurred while parsing config file.")
+            .unwrap_or_else(|error| exit!("Config", format!("{error:?}")))
     }
 }
 
@@ -164,7 +168,7 @@ where
             while let Some(regex_pattern_string) = seq.next_element::<String>()? {
                 let regex = Regex::new(&regex_pattern_string)
                     .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| exit!("Config", error));
+                    .unwrap_or_else(|error| exit!("Config", format!("{error:?}")));
 
                 vec.push(regex);
             }
@@ -198,7 +202,7 @@ where
             while let Some((regex_pattern_string, regex_replacer_string)) = seq.next_element::<(String, String)>()? {
                 let regex = Regex::new(&regex_pattern_string)
                     .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| exit!("Config", error));
+                    .unwrap_or_else(|error| exit!("Config", format!("{error:?}")));
 
                 vec.push((regex, regex_replacer_string));
             }
