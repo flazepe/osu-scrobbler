@@ -1,4 +1,7 @@
 use crate::exit;
+use anyhow::Context;
+use colored::Colorize;
+use regex::Regex;
 use serde::{
     Deserialize, Deserializer, Serialize,
     de::{SeqAccess, Visitor},
@@ -74,6 +77,9 @@ pub struct ScrobblerBlacklistTypeConfig {
 
     #[serde(deserialize_with = "deserialize_case_insensitive_vec")]
     pub contains_words: Vec<String>,
+
+    #[serde(deserialize_with = "deserialize_regex_vec")]
+    pub matches_regex: Vec<Regex>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -127,4 +133,38 @@ where
     }
 
     deserializer.deserialize_seq(CaseInsensitiveVecVisitor)
+}
+
+fn deserialize_regex_vec<'de, D>(deserializer: D) -> Result<Vec<Regex>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct RegexVecVisitor;
+
+    impl<'de> Visitor<'de> for RegexVecVisitor {
+        type Value = Vec<Regex>;
+
+        fn expecting(&self, formatter: &mut Formatter) -> FmtResult {
+            formatter.write_str("an array of regex pattern strings")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
+
+            while let Some(element) = seq.next_element::<String>()? {
+                vec.push(
+                    Regex::new(&element)
+                        .context(format!("Invalid regex pattern: {}", element.bright_red()))
+                        .unwrap_or_else(|error| exit!("Config", error)),
+                );
+            }
+
+            Ok(vec)
+        }
+    }
+
+    deserializer.deserialize_seq(RegexVecVisitor)
 }

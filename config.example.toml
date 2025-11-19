@@ -35,6 +35,9 @@ equals = []
 # (optional) A list of words inside an artist to blacklist (case-insensitive)
 contains_words = []
 
+# (optional) A list of regex pattern strings to blacklist (case-sensitive)
+matches_regex = []
+
 #
 # (optional) Titles to blacklist from scrobbling
 #
@@ -46,6 +49,9 @@ equals = []
 # (optional) A list of words inside a title to blacklist (case-insensitive)
 contains_words = []
 
+# (optional) A list of regex pattern strings to blacklist (case-sensitive)
+matches_regex = []
+
 #
 # (optional) Difficulties to blacklist from scrobbling
 #
@@ -56,6 +62,9 @@ equals = []
 
 # (optional) A list of words inside a difficulty to blacklist (case-insensitive)
 contains_words = []
+
+# (optional) A list of regex pattern strings to blacklist (case-sensitive)
+matches_regex = []
 
 #
 # The Last.fm configuration. Can be omitted if you're already using at least one other scrobbler
