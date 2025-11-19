@@ -63,6 +63,7 @@ impl ScrobblerConfig {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
+    Default,
     Osu,
     Taiko,
     Fruits,

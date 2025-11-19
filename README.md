@@ -27,8 +27,8 @@ The scrobbler configuration
 -   `mode`
 
     -   The osu! mode to scrobble
-    -   Possible values: `"osu"`, `"taiko"`, `"fruits"`, `"mania"`
-    -   Default: User's default mode
+    -   Possible values: `"default"`, `"osu"`, `"taiko"`, `"fruits"`, `"mania"`
+    -   Default: `"default"`
 
 -   `use_original_metadata`
 

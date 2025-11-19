@@ -1,7 +1,7 @@
 
 [scrobbler]
 user_id = 8834263
-mode = "osu"
+mode = "default"
 use_original_metadata = true
 min_beatmap_length_secs = 60
 scrobble_fails = false

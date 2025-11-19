@@ -35,7 +35,9 @@ impl Score {
     pub fn get_user_recent(user_id: u64, mode: &Option<Mode>, include_fails: bool) -> Result<Option<Self>> {
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
-        if let Some(mode) = mode {
+        if let Some(mode) = mode
+            && !matches!(mode, Mode::Default)
+        {
             request = request.query(&[("mode", mode)]);
         }
 
