@@ -1,4 +1,4 @@
-use crate::config::{Mode, ScrobblerConfig};
+use crate::{config::Mode, scrobbler::CONFIG};
 use anyhow::{Result, bail};
 use musicbrainz_rs::{
     Search,
@@ -32,13 +32,13 @@ pub struct ScoreModSettings {
 }
 
 impl Score {
-    pub fn get_user_recent(config: &ScrobblerConfig) -> Result<Option<Self>> {
-        let user_id = config.user_id;
-        let include_fails = config.scrobble_fails;
+    pub fn get_user_recent() -> Result<Option<Self>> {
+        let user_id = CONFIG.scrobbler.user_id;
+        let include_fails = CONFIG.scrobbler.scrobble_fails;
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
-        if !matches!(config.mode, Mode::Default) {
-            request = request.query(&[("mode", &config.mode)]);
+        if !matches!(CONFIG.scrobbler.mode, Mode::Default) {
+            request = request.query(&[("mode", &CONFIG.scrobbler.mode)]);
         }
 
         let response = match request.send() {
@@ -57,7 +57,33 @@ impl Score {
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
     }
 
-    pub fn get_musicbrainz_recordings(&self) -> Vec<Recording> {
+    pub fn get_album_name(&self) -> Option<String> {
+        let find_by_group_primary_type = |primary_type: Option<ReleaseGroupPrimaryType>| {
+            for recording in self.get_musicbrainz_recordings() {
+                let Some(releases) = recording.releases else { continue };
+
+                for release in releases {
+                    let Some(primary_type) = &primary_type else { return Some(release.title) };
+                    let Some(release_group) = release.release_group else { continue };
+
+                    if release_group.primary_type == Some(primary_type.clone()) && release_group.secondary_types.is_empty() {
+                        return Some(release.title);
+                    }
+                }
+            }
+
+            None
+        };
+
+        find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Album))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Ep)))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Single)))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Other)))
+            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType)))
+            .or_else(|| find_by_group_primary_type(None))
+    }
+
+    fn get_musicbrainz_recordings(&self) -> Vec<Recording> {
         let mut query_artist = RecordingSearchQuery::query_builder();
         query_artist
             .artist(&self.beatmapset.artist)
@@ -86,32 +112,6 @@ impl Score {
         let results = Recording::search(query).limit(100).execute();
 
         results.map(|results| results.entities).unwrap_or_default()
-    }
-
-    pub fn get_album_name(&self) -> Option<String> {
-        let find_by_group_primary_type = |primary_type: Option<ReleaseGroupPrimaryType>| {
-            for recording in self.get_musicbrainz_recordings() {
-                let Some(releases) = recording.releases else { continue };
-
-                for release in releases {
-                    let Some(primary_type) = &primary_type else { return Some(release.title) };
-                    let Some(release_group) = release.release_group else { continue };
-
-                    if release_group.primary_type == Some(primary_type.clone()) && release_group.secondary_types.is_empty() {
-                        return Some(release.title);
-                    }
-                }
-            }
-
-            None
-        };
-
-        find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Album))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Ep)))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Single)))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Other)))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType)))
-            .or_else(|| find_by_group_primary_type(None))
     }
 }
 

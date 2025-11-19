@@ -14,8 +14,8 @@ use serde::Deserialize;
 const API_BASE_URL: &str = "https://api.listenbrainz.org/1";
 
 #[derive(Debug)]
-pub struct ListenBrainzScrobbler {
-    config: ListenBrainzConfig,
+pub struct ListenBrainzScrobbler<'a> {
+    config: &'a ListenBrainzConfig,
 }
 
 #[derive(Deserialize)]
@@ -23,8 +23,8 @@ struct ListenBrainzToken {
     user_name: String,
 }
 
-impl ListenBrainzScrobbler {
-    pub fn new(config: ListenBrainzConfig) -> Self {
+impl<'a> ListenBrainzScrobbler<'a> {
+    pub fn new(config: &'a ListenBrainzConfig) -> Self {
         let user_token = &config.user_token;
         let response = REQWEST
             .get(format!("{API_BASE_URL}/validate-token"))
