@@ -2,7 +2,7 @@
 
 An osu! Last.fm and ListenBrainz scrobbler. This scrobbler only works for gameplay!
 
-# Setup
+## Setup
 
 -   Download the latest release.
 -   Extract the archive you downloaded to your desired folder.
@@ -11,10 +11,10 @@ An osu! Last.fm and ListenBrainz scrobbler. This scrobbler only works for gamepl
 -   Get your Last.fm API credentials from [here](https://www.last.fm/api/account/create) (or [here](https://www.last.fm/api/accounts) if you already have one) and edit the configuration values accordingly.
 -   For ListenBrainz users, head [here](https://listenbrainz.org/profile/) to get your user token.
 
-# Configuration
+## Configuration
 
 Refer [here](https://github.com/flazepe/osu-scrobbler/wiki/Configuration) for more details about the configuration properties.
 
-# Autostart
+## Autostart
 
 You can configure the scrobbler to automatically start on startup. Refer [here](https://github.com/flazepe/osu-scrobbler/wiki/Autostart) for the necessary steps.
