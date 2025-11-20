@@ -2,7 +2,7 @@ use crate::{logger::Logger, scores::Score, scrobbler::CONFIG};
 use anyhow::{Result, bail};
 use chrono::DateTime;
 use colored::Colorize;
-use std::{fmt::Display, io::stdin, process::exit as process_exit};
+use std::{borrow::Cow, fmt::Display, io::stdin, process::exit as process_exit};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 pub fn exit<T: Display>(tag: &str, message: T) -> ! {
@@ -23,6 +23,8 @@ pub fn get_osu_pid() -> Option<u32> {
 }
 
 pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<String>, Option<String>) {
+    let clean_extra_whitespaces = |string: Cow<'_, str>| string.trim().split(char::is_whitespace).collect::<Vec<&str>>().join(" ");
+
     let artists = [score.beatmapset.artist.to_lowercase(), score.beatmapset.artist_unicode.to_lowercase()];
     let mut new_artist = None;
 
@@ -35,9 +37,15 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<Str
 
     if new_artist.is_none() {
         for (regex, replacer) in &CONFIG.scrobbler.redirects.artists.regex_matches {
-            if regex.is_match(artist) {
-                new_artist = Some(regex.replace(artist, replacer).to_string());
-                break;
+            let haystack = new_artist.as_deref().unwrap_or(artist);
+
+            if regex.is_match(haystack) {
+                Logger::success(
+                    "Scrobbler",
+                    format!("Regex {} matched artist {}. Applying...", regex.to_string().bright_blue(), haystack.bright_blue()),
+                );
+
+                new_artist = Some(clean_extra_whitespaces(regex.replace(haystack, replacer)));
             }
         }
     }
@@ -54,9 +62,15 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<Str
 
     if new_title.is_none() {
         for (regex, replacer) in &CONFIG.scrobbler.redirects.titles.regex_matches {
-            if regex.is_match(title) {
-                new_title = Some(regex.replace(title, replacer).to_string());
-                break;
+            let haystack = new_title.as_deref().unwrap_or(title);
+
+            if regex.is_match(haystack) {
+                Logger::success(
+                    "Scrobbler",
+                    format!("Regex {} matched title {}. Applying...", regex.to_string().bright_blue(), haystack.bright_blue()),
+                );
+
+                new_title = Some(clean_extra_whitespaces(regex.replace(haystack, replacer)));
             }
         }
     }
