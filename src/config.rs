@@ -1,4 +1,4 @@
-use crate::scrobbler::Scrobbler;
+use crate::{logger::Logger, scrobbler::Scrobbler};
 use anyhow::Context;
 use colored::Colorize;
 use regex::{Regex, RegexBuilder};
@@ -8,7 +8,7 @@ use serde::{
 };
 use std::{
     env::var,
-    fmt::{Formatter, Result as FmtResult},
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
     fs::read_to_string,
 };
 use toml::from_str;
@@ -24,13 +24,18 @@ impl Config {
     pub fn get() -> Self {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
         let config_path = env_config_path.as_deref().unwrap_or("config.toml");
+
         let config_string = read_to_string(config_path)
             .context("An error occurred while trying to read config file.")
             .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
 
-        from_str(&config_string)
+        let config = from_str(&config_string)
             .context("An error occurred while parsing config file.")
-            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")))
+            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
+
+        Logger::success("Config", format!("Successfully loaded: {config:#?}"));
+
+        config
     }
 }
 
@@ -119,14 +124,29 @@ pub struct ScrobblerBlacklistTypeConfig {
 #[derive(Deserialize, Debug)]
 pub struct LastfmConfig {
     pub username: String,
-    pub password: String,
-    pub api_key: String,
-    pub api_secret: String,
+    pub password: SensitiveString,
+    pub api_key: SensitiveString,
+    pub api_secret: SensitiveString,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct ListenBrainzConfig {
-    pub user_token: String,
+    pub user_token: SensitiveString,
+}
+
+#[derive(Deserialize)]
+pub struct SensitiveString(String);
+
+impl Display for SensitiveString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Debug for SensitiveString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "<redacted>")
+    }
 }
 
 fn deserialize_case_insensitive_redirects_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<(String, String)>, D::Error> {
