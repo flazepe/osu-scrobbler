@@ -6,14 +6,11 @@ use crate::{
     logger::Logger,
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
+    utils::{get_osu_pid, handle_redirects, validate_scrobble},
 };
-use anyhow::{Result, bail};
-use chrono::DateTime;
 use colored::Colorize;
-use regex::{Regex, escape};
 use reqwest::blocking::Client;
 use std::{fmt::Display, io::stdin, process::exit, sync::LazyLock, thread::sleep, time::Duration};
-use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::get);
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
@@ -61,7 +58,7 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        if !Self::osu_is_running() {
+        if get_osu_pid().is_none() {
             return;
         }
 
@@ -97,7 +94,7 @@ impl Scrobbler {
             title = title_original;
         }
 
-        if let Err(error) = self.validate_scrobble(score) {
+        if let Err(error) = validate_scrobble(score) {
             Logger::warn(
                 "Scrobbler",
                 format!(
@@ -111,7 +108,7 @@ impl Scrobbler {
             return;
         }
 
-        let (new_artist, new_title) = self.handle_redirects(score, artist, title);
+        let (new_artist, new_title) = handle_redirects(score, artist, title);
 
         let artist_redirected_text = new_artist.as_ref().map(|new_artist| {
             let old_artist = artist;
@@ -156,152 +153,5 @@ impl Scrobbler {
                 Err(error) => Logger::error("\tListenBrainz", error),
             };
         }
-    }
-
-    fn handle_redirects(&self, score: &Score, artist: &str, title: &str) -> (Option<String>, Option<String>) {
-        let artists = [score.beatmapset.artist.to_lowercase(), score.beatmapset.artist_unicode.to_lowercase()];
-
-        if let Some((_, new)) = CONFIG.scrobbler.artist_redirects.iter().find(|(old, _)| artists.contains(&old.to_lowercase())) {
-            return (Some(new.clone()), None);
-        }
-
-        let mut new_artist = None;
-
-        for (regex, replacer) in &CONFIG.scrobbler.artist_regex_redirects {
-            if regex.is_match(artist) {
-                new_artist = Some(regex.replace(artist, replacer).to_string());
-                break;
-            }
-        }
-
-        let mut new_title = None;
-
-        for (regex, replacer) in &CONFIG.scrobbler.title_regex_redirects {
-            if regex.is_match(title) {
-                new_title = Some(regex.replace(title, replacer).to_string());
-                break;
-            }
-        }
-
-        (new_artist, new_title)
-    }
-
-    fn validate_scrobble(&self, score: &Score) -> Result<()> {
-        let boundary_match = |haystack, word| Regex::new(&format!("\\b{}\\b", escape(word))).unwrap().is_match(haystack);
-        let (artist_romanized, artist_original) = (score.beatmapset.artist.to_lowercase(), score.beatmapset.artist_unicode.to_lowercase());
-
-        if CONFIG.scrobbler.blacklist.artists.equals.contains(&artist_romanized)
-            || CONFIG.scrobbler.blacklist.artists.equals.contains(&artist_original)
-        {
-            bail!("Beatmapset artist is blacklisted.");
-        }
-
-        if let Some(word) = CONFIG
-            .scrobbler
-            .blacklist
-            .artists
-            .contains_words
-            .iter()
-            .find(|word| boundary_match(&artist_romanized, word) || boundary_match(&artist_original, word))
-        {
-            bail!("Beatmapset artist contains a blacklisted word ({}).", word.bright_red());
-        }
-
-        if let Some(regex) = CONFIG
-            .scrobbler
-            .blacklist
-            .artists
-            .matches_regex
-            .iter()
-            .find(|regex| regex.is_match(&score.beatmapset.artist) || regex.is_match(&score.beatmapset.artist_unicode))
-        {
-            bail!("Beatmapset artist matches a blacklisted regex ({}).", regex.as_str().bright_red());
-        }
-
-        let (title_romanized, title_original) = (score.beatmapset.title.to_lowercase(), score.beatmapset.title_unicode.to_lowercase());
-
-        if CONFIG.scrobbler.blacklist.titles.equals.contains(&title_romanized)
-            || CONFIG.scrobbler.blacklist.titles.equals.contains(&title_original)
-        {
-            bail!("Beatmapset title is blacklisted.");
-        }
-
-        if let Some(word) = CONFIG
-            .scrobbler
-            .blacklist
-            .titles
-            .contains_words
-            .iter()
-            .find(|word| boundary_match(&title_romanized, word) || boundary_match(&title_original, word))
-        {
-            bail!("Beatmapset title contains a blacklisted word ({}).", word.bright_red());
-        }
-
-        if let Some(regex) = CONFIG
-            .scrobbler
-            .blacklist
-            .titles
-            .matches_regex
-            .iter()
-            .find(|regex| regex.is_match(&score.beatmapset.title) || regex.is_match(&score.beatmapset.title_unicode))
-        {
-            bail!("Beatmapset title matches a blacklisted regex ({}).", regex.as_str().bright_red());
-        }
-
-        let difficulty = score.beatmap.version.to_lowercase();
-
-        if CONFIG.scrobbler.blacklist.difficulties.equals.contains(&difficulty) {
-            bail!("Beatmap difficulty is blacklisted.");
-        }
-
-        if let Some(word) = CONFIG.scrobbler.blacklist.difficulties.contains_words.iter().find(|word| boundary_match(&difficulty, word)) {
-            bail!("Beatmap difficulty contains a blacklisted word ({}).", word.bright_red());
-        }
-
-        if let Some(regex) =
-            CONFIG.scrobbler.blacklist.difficulties.matches_regex.iter().find(|regex| regex.is_match(&score.beatmap.version))
-        {
-            bail!("Beatmap difficulty matches a blacklisted regex ({}).", regex.as_str().bright_red());
-        }
-
-        if score.beatmap.total_length < CONFIG.scrobbler.min_beatmap_length_secs {
-            bail!(
-                "Beatmap's total length ({}) is less than the configured minimum length ({}).",
-                format!("{}s", score.beatmap.total_length).bright_blue(),
-                format!("{}s", CONFIG.scrobbler.min_beatmap_length_secs).bright_blue(),
-            );
-        }
-
-        if !score.passed {
-            let started_at = score.started_at.as_ref().and_then(|started_at| DateTime::parse_from_rfc3339(started_at).ok());
-            let ended_at = DateTime::parse_from_rfc3339(&score.ended_at).ok();
-            let delta =
-                ended_at.and_then(|ended_at| started_at.map(|started_at| (ended_at - started_at).as_seconds_f64())).unwrap_or_default();
-
-            if delta > 0. {
-                let rate = score
-                    .mods
-                    .iter()
-                    .find(|score_mod| score_mod.acronym == "DT" || score_mod.acronym == "NC")
-                    .and_then(|score_mod| score_mod.settings.as_ref().map(|settings| settings.speed_change.unwrap_or(1.5)))
-                    .unwrap_or(1.);
-                let hit_length = score.beatmap.hit_length as f64 / rate;
-
-                // A valid scrobble should be half of the beatmap's hit length or 4 minutes, whichever occurs earlier
-                // This might go through if the user paused, took a long break, and continued (just to fail some time after)
-                let is_valid_scrobble = delta >= hit_length / 2. || delta >= 60. * 4.;
-
-                if !is_valid_scrobble {
-                    bail!("Play's progress is less than half of the drain time.");
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    fn osu_is_running() -> bool {
-        let system = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()));
-        system.processes().iter().any(|(_, process)| process.name() == "osu!" || process.name() == "osu!.exe")
     }
 }

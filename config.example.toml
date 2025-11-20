@@ -5,24 +5,26 @@ use_original_metadata = true
 min_beatmap_length_secs = 60
 scrobble_fails = false
 log_scrobbles = false
-artist_redirects = []
-artist_regex_redirects = []
-title_regex_redirects = []
+
+[scrobbler.redirects.artists]
+equal_matches = []
+regex_matches = []
+
+[scrobbler.redirects.titles]
+equal_matches = []
+regex_matches = []
 
 [scrobbler.blacklist.artists]
-equals = []
-contains_words = []
-matches_regex = []
+equal_matches = []
+regex_matches = []
 
 [scrobbler.blacklist.titles]
-equals = []
-contains_words = []
-matches_regex = []
+equal_matches = []
+regex_matches = []
 
 [scrobbler.blacklist.difficulties]
-equals = []
-contains_words = []
-matches_regex = []
+equal_matches = []
+regex_matches = []
 
 [last_fm]
 username = "..."
