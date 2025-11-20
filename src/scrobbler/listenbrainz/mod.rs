@@ -1,10 +1,6 @@
 mod payloads;
 
-use crate::{
-    config::ListenBrainzConfig,
-    logger::Logger,
-    scrobbler::{REQWEST, Scrobbler},
-};
+use crate::{config::ListenBrainzConfig, logger::Logger, scrobbler::REQWEST, utils::exit};
 use anyhow::{Result, bail};
 use colored::Colorize;
 use payloads::{Listen, ListenType, Listens};
@@ -31,7 +27,7 @@ impl<'a> ListenBrainzScrobbler<'a> {
             .header("authorization", format!("Token {user_token}"))
             .send()
             .and_then(|response| response.json::<ListenBrainzToken>());
-        let Ok(token) = response else { Scrobbler::exit("ListenBrainz", "Invalid user token provided.") };
+        let Ok(token) = response else { exit("ListenBrainz", "Invalid user token provided.") };
         Logger::success("ListenBrainz", format!("Successfully authenticated with username {}.", token.user_name.bright_blue()));
 
         Self { config }

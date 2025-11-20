@@ -1,10 +1,6 @@
 mod queries;
 
-use crate::{
-    config::LastfmConfig,
-    logger::Logger,
-    scrobbler::{REQWEST, Scrobbler},
-};
+use crate::{config::LastfmConfig, logger::Logger, scrobbler::REQWEST, utils::exit};
 use anyhow::{Result, bail};
 use chrono::Utc;
 use colored::Colorize;
@@ -47,7 +43,7 @@ impl<'a> LastfmScrobbler<'a> {
             .send()
             .and_then(|response| response.json::<LastfmSession>());
 
-        let Ok(session) = response else { Scrobbler::exit("Last.fm", "Invalid credentials provided.") };
+        let Ok(session) = response else { exit("Last.fm", "Invalid credentials provided.") };
         Logger::success("Last.fm", format!("Successfully authenticated with username {}.", session.session.name.bright_blue()));
 
         Self { config, session_key: session.session.key }

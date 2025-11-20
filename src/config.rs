@@ -1,4 +1,4 @@
-use crate::{logger::Logger, scrobbler::Scrobbler};
+use crate::{logger::Logger, utils::exit};
 use anyhow::Context;
 use colored::Colorize;
 use regex::{Regex, RegexBuilder};
@@ -27,11 +27,11 @@ impl Config {
 
         let config_string = read_to_string(config_path)
             .context("An error occurred while trying to read config file.")
-            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
+            .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
         let config = from_str(&config_string)
             .context("An error occurred while parsing config file.")
-            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
+            .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
         Logger::success("Config", format!("Successfully loaded: {config:#?}"));
 
@@ -215,7 +215,7 @@ fn deserialize_regex_redirects_vec<'de, D: Deserializer<'de>>(deserializer: D) -
                     .case_insensitive(true)
                     .build()
                     .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
+                    .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
                 vec.push((regex, regex_replacer_string));
             }
@@ -245,7 +245,7 @@ fn deserialize_regex_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<V
                     .case_insensitive(true)
                     .build()
                     .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
+                    .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
                 vec.push(regex);
             }

@@ -6,11 +6,11 @@ use crate::{
     logger::Logger,
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
-    utils::{get_osu_pid, handle_redirects, validate_scrobble},
+    utils::{exit, get_osu_pid, handle_redirects, validate_scrobble},
 };
 use colored::Colorize;
 use reqwest::blocking::Client;
-use std::{fmt::Display, io::stdin, process::exit, sync::LazyLock, thread::sleep, time::Duration};
+use std::{sync::LazyLock, thread::sleep, time::Duration};
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::get);
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
@@ -26,7 +26,7 @@ pub struct Scrobbler {
 impl Scrobbler {
     pub fn new() -> Self {
         if CONFIG.last_fm.is_none() && CONFIG.listenbrainz.is_none() {
-            Self::exit("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
+            exit("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
         }
 
         Self {
@@ -50,13 +50,6 @@ impl Scrobbler {
         }
     }
 
-    pub fn exit<T: Display>(tag: &str, message: T) -> ! {
-        Logger::error(tag, message);
-        println!("\nPress enter to exit.");
-        let _ = stdin().read_line(&mut String::new());
-        exit(1);
-    }
-
     fn poll(&mut self) {
         if get_osu_pid().is_none() {
             return;
@@ -70,7 +63,7 @@ impl Scrobbler {
             },
             Err(error) => {
                 if error.to_string().contains("404") {
-                    Self::exit("Scrobbler", "Invalid osu! user ID given.");
+                    exit("Scrobbler", "Invalid osu! user ID given.");
                 }
                 Logger::error("Scrobbler", error);
                 self.cooldown_secs += 10;
