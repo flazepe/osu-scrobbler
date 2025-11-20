@@ -45,7 +45,7 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<Str
                     format!("Regex {} matched artist {}. Applying...", regex.to_string().bright_blue(), haystack.bright_blue()),
                 );
 
-                new_artist = Some(clean_extra_whitespaces(regex.replace(haystack, replacer)));
+                new_artist = Some(clean_extra_whitespaces(regex.replace_all(haystack, replacer)));
             }
         }
     }
@@ -70,7 +70,7 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<Str
                     format!("Regex {} matched title {}. Applying...", regex.to_string().bright_blue(), haystack.bright_blue()),
                 );
 
-                new_title = Some(clean_extra_whitespaces(regex.replace(haystack, replacer)));
+                new_title = Some(clean_extra_whitespaces(regex.replace_all(haystack, replacer)));
             }
         }
     }
