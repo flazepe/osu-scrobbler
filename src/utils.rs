@@ -33,10 +33,12 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<Str
         }
     }
 
-    for (regex, replacer) in &CONFIG.scrobbler.redirects.artists.regex_matches {
-        if regex.is_match(artist) {
-            new_artist = Some(regex.replace(artist, replacer).to_string());
-            break;
+    if new_artist.is_none() {
+        for (regex, replacer) in &CONFIG.scrobbler.redirects.artists.regex_matches {
+            if regex.is_match(artist) {
+                new_artist = Some(regex.replace(artist, replacer).to_string());
+                break;
+            }
         }
     }
 
@@ -50,10 +52,12 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str) -> (Option<Str
         }
     }
 
-    for (regex, replacer) in &CONFIG.scrobbler.redirects.titles.regex_matches {
-        if regex.is_match(title) {
-            new_title = Some(regex.replace(title, replacer).to_string());
-            break;
+    if new_title.is_none() {
+        for (regex, replacer) in &CONFIG.scrobbler.redirects.titles.regex_matches {
+            if regex.is_match(title) {
+                new_title = Some(regex.replace(title, replacer).to_string());
+                break;
+            }
         }
     }
 
