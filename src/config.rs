@@ -20,6 +20,20 @@ pub struct Config {
     pub listenbrainz: Option<ListenBrainzConfig>,
 }
 
+impl Config {
+    pub fn get() -> Self {
+        let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
+        let config_path = env_config_path.as_deref().unwrap_or("config.toml");
+        let config_string = read_to_string(config_path)
+            .context("An error occurred while trying to read config file.")
+            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
+
+        from_str(&config_string)
+            .context("An error occurred while parsing config file.")
+            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")))
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ScrobblerConfig {
     pub user_id: u64,
@@ -104,20 +118,6 @@ pub struct LastfmConfig {
 #[derive(Deserialize, Debug)]
 pub struct ListenBrainzConfig {
     pub user_token: String,
-}
-
-impl Config {
-    pub fn get() -> Self {
-        let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
-        let config_path = env_config_path.as_deref().unwrap_or("config.toml");
-        let config_string = read_to_string(config_path)
-            .context("An error occurred while trying to read config file.")
-            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")));
-
-        from_str(&config_string)
-            .context("An error occurred while parsing config file.")
-            .unwrap_or_else(|error| Scrobbler::exit("Config", format!("{error:?}")))
-    }
 }
 
 fn deserialize_case_insensitive_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
