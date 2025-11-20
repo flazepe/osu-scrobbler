@@ -162,3 +162,19 @@ Environment=OSU_SCROBBLER_CONFIG_PATH=/path/to/osu-scrobbler/config.toml
 [Install]
 WantedBy=multi-user.target
 ```
+# Windows Startup
+
+You can configure `osu-scrobbler` to run automatically when Windows starts.
+
+### Option 1: Run in Background (Hidden)
+This method runs the scrobbler silently without a visible terminal window.
+
+1. Ensure `launch_hidden.vbs` is in the same folder as `osu-scrobbler.exe`.
+2. Right-click `launch_hidden.vbs` and select **Create shortcut**.
+3. Press `Win + R` on your keyboard, type `shell:startup`, and press Enter.
+4. Move the newly created shortcut into the Startup folder that opens.
+
+### Option 2: Run with Terminal (Visible)
+This method keeps the terminal window open, which is useful if you want to monitor logs.
+
+Follow the same steps as Option 1, but create the shortcut for `osu-scrobbler.exe` instead.
