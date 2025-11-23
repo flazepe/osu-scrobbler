@@ -58,29 +58,45 @@ impl Score {
     }
 
     pub fn get_album_name(&self) -> Option<String> {
-        let find_by_group_primary_type = |primary_type: Option<ReleaseGroupPrimaryType>| {
-            for recording in self.get_musicbrainz_recordings() {
-                let Some(releases) = recording.releases else { continue };
+        let mut title_album = None;
+        let mut title_ep = None;
+        let mut title_single = None;
+        let mut title_other = None;
+        let mut title_unrecognized = None;
+        let mut title_first = None;
 
-                for release in releases {
-                    let Some(primary_type) = &primary_type else { return Some(release.title) };
-                    let Some(release_group) = release.release_group else { continue };
+        for recording in self.get_musicbrainz_recordings() {
+            let Some(releases) = recording.releases else { continue };
 
-                    if release_group.primary_type == Some(primary_type.clone()) && release_group.secondary_types.is_empty() {
-                        return Some(release.title);
-                    }
+            for release in releases {
+                if title_first.is_none() {
+                    title_first = Some(release.title.clone());
+                }
+
+                let release_group_primary_type = release
+                    .release_group
+                    .as_ref()
+                    .and_then(|release_group| release_group.primary_type.as_ref())
+                    .unwrap_or(&ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType);
+
+                let release_group_secondary_types_is_empty =
+                    release.release_group.as_ref().map(|release_group| release_group.secondary_types.is_empty()).unwrap_or_default();
+
+                let option = match release_group_primary_type {
+                    ReleaseGroupPrimaryType::Album => &mut title_album,
+                    ReleaseGroupPrimaryType::Ep => &mut title_ep,
+                    ReleaseGroupPrimaryType::Single => &mut title_single,
+                    ReleaseGroupPrimaryType::Other => &mut title_other,
+                    _ => &mut title_unrecognized,
+                };
+
+                if option.is_none() && release_group_secondary_types_is_empty {
+                    _ = option.insert(release.title);
                 }
             }
+        }
 
-            None
-        };
-
-        find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Album))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Ep)))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Single)))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::Other)))
-            .or_else(|| find_by_group_primary_type(Some(ReleaseGroupPrimaryType::UnrecognizedReleaseGroupPrimaryType)))
-            .or_else(|| find_by_group_primary_type(None))
+        title_album.or(title_ep).or(title_single).or(title_other).or(title_unrecognized).or(title_first)
     }
 
     fn get_musicbrainz_recordings(&self) -> Vec<Recording> {
