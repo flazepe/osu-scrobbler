@@ -9,7 +9,7 @@ use serde::{
 use std::{
     env::var,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
-    fs::read_to_string,
+    fs::{canonicalize, read_to_string},
 };
 use toml::from_str;
 
@@ -23,17 +23,18 @@ pub struct Config {
 impl Config {
     pub fn get() -> Self {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
-        let config_path = env_config_path.as_deref().unwrap_or("config.toml");
-
-        let config_string = read_to_string(config_path)
-            .context("An error occurred while trying to read config file.")
+        let config_path = canonicalize(env_config_path.as_deref().unwrap_or("config.toml"))
+            .context("Could not resolve the path to config file.")
             .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
+        let config_string = read_to_string(&config_path)
+            .context("An error occurred while trying to read config file.")
+            .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
         let config = from_str(&config_string)
             .context("An error occurred while parsing config file.")
             .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
-        Logger::success("Config", format!("Successfully loaded: {config:#?}"));
+        Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()));
 
         config
     }
