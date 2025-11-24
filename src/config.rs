@@ -1,15 +1,19 @@
-use crate::{logger::Logger, utils::exit};
-use anyhow::Context;
+use crate::logger::Logger;
+use anyhow::{Context, Result};
 use colored::Colorize;
 use regex::{Regex, RegexBuilder};
 use serde::{
-    Deserialize, Deserializer, Serialize,
+    Deserialize, Deserializer, Serialize, Serializer,
     de::{SeqAccess, Visitor},
+    ser::SerializeSeq,
 };
+use serde_json::to_string;
+use serde_regex::Serde as SerdeRegex;
 use std::{
     env::var,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
     fs::{canonicalize, read_to_string},
+    path::PathBuf,
 };
 use toml::from_str;
 
@@ -21,22 +25,15 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn get() -> Self {
+    pub fn get_canonicalized_path() -> Result<PathBuf> {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
-        let config_path = canonicalize(env_config_path.as_deref().unwrap_or("config.toml"))
-            .context("Could not resolve the path to config file.")
-            .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
+        let config_path = env_config_path.as_deref().unwrap_or("config.toml");
+        canonicalize(config_path).context("Could not resolve the path to config file.")
+    }
 
-        let config_string = read_to_string(&config_path)
-            .context("An error occurred while trying to read config file.")
-            .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
-        let config = from_str(&config_string)
-            .context("An error occurred while parsing config file.")
-            .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
-
-        Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()));
-
-        config
+    pub fn read(path: &PathBuf) -> Result<Self> {
+        let config_string = read_to_string(path).context("An error occurred while trying to read config file.")?;
+        from_str(&config_string).context("An error occurred while parsing config file.")
     }
 }
 
@@ -67,6 +64,21 @@ pub struct ScrobblerConfig {
 }
 
 impl ScrobblerConfig {
+    pub fn sync(&mut self) {
+        let Ok(config_path) = Config::get_canonicalized_path() else { return };
+        let Ok(new_config) = Config::read(&config_path) else { return };
+
+        if to_string(&new_config.scrobbler.redirects).unwrap_or_default() != to_string(&self.redirects).unwrap_or_default() {
+            self.redirects = new_config.scrobbler.redirects;
+            Logger::success("Config", format!("Successfully reloaded redirects from {}.", config_path.to_string_lossy().bright_blue()));
+        }
+
+        if to_string(&new_config.scrobbler.blacklist).unwrap_or_default() != to_string(&self.blacklist).unwrap_or_default() {
+            self.blacklist = new_config.scrobbler.blacklist;
+            Logger::success("Config", format!("Successfully reloaded blacklist from {}.", config_path.to_string_lossy().bright_blue()));
+        }
+    }
+
     fn use_original_metadata_default() -> bool {
         true
     }
@@ -88,7 +100,7 @@ pub enum Mode {
     Mania,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 pub struct ScrobblerRedirectsConfig {
     #[serde(default)]
     pub artists: ScrobblerRedirectsTypeConfig,
@@ -97,28 +109,28 @@ pub struct ScrobblerRedirectsConfig {
     pub titles: ScrobblerRedirectsTypeConfig,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 pub struct ScrobblerRedirectsTypeConfig {
     #[serde(deserialize_with = "deserialize_case_insensitive_redirects_vec", default)]
     pub equal_matches: Vec<(String, String)>,
 
-    #[serde(deserialize_with = "deserialize_regex_redirects_vec", default)]
+    #[serde(deserialize_with = "deserialize_regex_redirects_vec", serialize_with = "serialize_regex_redirects_vec", default)]
     pub regex_matches: Vec<(Regex, String)>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 pub struct ScrobblerBlacklistConfig {
     pub artists: ScrobblerBlacklistTypeConfig,
     pub titles: ScrobblerBlacklistTypeConfig,
     pub difficulties: ScrobblerBlacklistTypeConfig,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Serialize, Default, Debug)]
 pub struct ScrobblerBlacklistTypeConfig {
     #[serde(deserialize_with = "deserialize_case_insensitive_vec", default)]
     pub equal_matches: Vec<String>,
 
-    #[serde(deserialize_with = "deserialize_regex_vec", default)]
+    #[serde(deserialize_with = "deserialize_regex_vec", serialize_with = "serde_regex::serialize", default)]
     pub regex_matches: Vec<Regex>,
 }
 
@@ -211,14 +223,9 @@ fn deserialize_regex_redirects_vec<'de, D: Deserializer<'de>>(deserializer: D) -
         fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
             let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
-            while let Some((regex_pattern_string, regex_replacer_string)) = seq.next_element::<(String, String)>()? {
-                let regex = RegexBuilder::new(&regex_pattern_string)
-                    .case_insensitive(true)
-                    .build()
-                    .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
-
-                vec.push((regex, regex_replacer_string));
+            while let Some((SerdeRegex(regex), regex_replacer_string)) = seq.next_element::<(SerdeRegex<Regex>, String)>()? {
+                let case_insensitive_regex = RegexBuilder::new(regex.as_str()).case_insensitive(true).build().unwrap();
+                vec.push((case_insensitive_regex, regex_replacer_string));
             }
 
             Ok(vec)
@@ -226,6 +233,16 @@ fn deserialize_regex_redirects_vec<'de, D: Deserializer<'de>>(deserializer: D) -
     }
 
     deserializer.deserialize_seq(RegexRedirectsVecVisitor)
+}
+
+fn serialize_regex_redirects_vec<S: Serializer>(value: &[(Regex, String)], serializer: S) -> Result<S::Ok, S::Error> {
+    let mut seq = serializer.serialize_seq(Some(value.len()))?;
+
+    for (regex, replacer) in value {
+        seq.serialize_element(&(regex.as_str(), replacer))?;
+    }
+
+    seq.end()
 }
 
 fn deserialize_regex_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<Regex>, D::Error> {
@@ -241,14 +258,9 @@ fn deserialize_regex_vec<'de, D: Deserializer<'de>>(deserializer: D) -> Result<V
         fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
             let mut vec = Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
-            while let Some(regex_pattern_string) = seq.next_element::<String>()? {
-                let regex = RegexBuilder::new(&regex_pattern_string)
-                    .case_insensitive(true)
-                    .build()
-                    .context(format!("Invalid regex pattern: {}", regex_pattern_string.bright_red()))
-                    .unwrap_or_else(|error| exit("Config", format!("{error:?}")));
-
-                vec.push(regex);
+            while let Some(SerdeRegex(regex)) = seq.next_element::<SerdeRegex<Regex>>()? {
+                let case_insensitive_regex = RegexBuilder::new(regex.as_str()).case_insensitive(true).build().unwrap();
+                vec.push(case_insensitive_regex);
             }
 
             Ok(vec)
