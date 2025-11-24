@@ -2,7 +2,7 @@ mod last_fm;
 mod listenbrainz;
 
 use crate::{
-    config::Config,
+    config::{Config, ScrobblerConfig},
     logger::Logger,
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
@@ -12,26 +12,29 @@ use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{sync::LazyLock, thread::sleep, time::Duration};
 
-pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::get);
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
 #[derive(Debug)]
 pub struct Scrobbler {
-    last_fm: Option<LastfmScrobbler<'static>>,
-    listenbrainz: Option<ListenBrainzScrobbler<'static>>,
+    config: ScrobblerConfig,
+    last_fm: Option<LastfmScrobbler>,
+    listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
     cooldown_secs: u64,
 }
 
 impl Scrobbler {
     pub fn new() -> Self {
-        if CONFIG.last_fm.is_none() && CONFIG.listenbrainz.is_none() {
+        let config = Config::get();
+
+        if config.last_fm.is_none() && config.listenbrainz.is_none() {
             exit("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
         }
 
         Self {
-            last_fm: CONFIG.last_fm.as_ref().map(LastfmScrobbler::new),
-            listenbrainz: CONFIG.listenbrainz.as_ref().map(ListenBrainzScrobbler::new),
+            config: config.scrobbler,
+            last_fm: config.last_fm.map(LastfmScrobbler::new),
+            listenbrainz: config.listenbrainz.map(ListenBrainzScrobbler::new),
             recent_score: None,
             cooldown_secs: 0,
         }
@@ -40,7 +43,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         Logger::success("Scrobbler", "Started!");
 
-        self.recent_score = Score::get_user_recent().unwrap_or_default();
+        self.recent_score = Score::get_user_recent(&self.config).unwrap_or_default();
 
         loop {
             self.cooldown_secs = 0;
@@ -55,7 +58,7 @@ impl Scrobbler {
             return;
         }
 
-        match Score::get_user_recent() {
+        match Score::get_user_recent(&self.config) {
             Ok(score) => {
                 let Some(score) = score else { return };
                 self.scrobble(&score);
@@ -82,12 +85,12 @@ impl Scrobbler {
         let mut artist = artist_romanized;
         let mut title = title_romanized;
 
-        if CONFIG.scrobbler.use_original_metadata {
+        if self.config.use_original_metadata {
             artist = artist_original;
             title = title_original;
         }
 
-        if let Err(error) = validate_scrobble(score) {
+        if let Err(error) = validate_scrobble(score, &self.config) {
             Logger::warn(
                 "Scrobbler",
                 format!(
@@ -101,7 +104,7 @@ impl Scrobbler {
             return;
         }
 
-        let (new_artist, new_title) = handle_redirects(score, artist, title);
+        let (new_artist, new_title) = handle_redirects(score, artist, title, &self.config);
 
         let artist_redirected_text = new_artist.as_ref().map(|new_artist| {
             let old_artist = artist;
@@ -129,7 +132,7 @@ impl Scrobbler {
             ),
         );
 
-        if CONFIG.scrobbler.log_scrobbles {
+        if self.config.log_scrobbles {
             Logger::file(format!("[{}] {artist} - {title}", score.ended_at));
         }
 

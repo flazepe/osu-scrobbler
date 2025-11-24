@@ -1,4 +1,4 @@
-use crate::{config::Mode, scrobbler::CONFIG};
+use crate::config::{Mode, ScrobblerConfig};
 use anyhow::{Result, bail};
 use musicbrainz_rs::{
     Search,
@@ -32,13 +32,13 @@ pub struct ScoreModSettings {
 }
 
 impl Score {
-    pub fn get_user_recent() -> Result<Option<Self>> {
-        let user_id = CONFIG.scrobbler.user_id;
-        let include_fails = CONFIG.scrobbler.scrobble_fails;
+    pub fn get_user_recent(config: &ScrobblerConfig) -> Result<Option<Self>> {
+        let user_id = config.user_id;
+        let include_fails: bool = config.scrobble_fails;
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
-        if !matches!(CONFIG.scrobbler.mode, Mode::Default) {
-            request = request.query(&[("mode", &CONFIG.scrobbler.mode)]);
+        if !matches!(config.mode, Mode::Default) {
+            request = request.query(&[("mode", &config.mode)]);
         }
 
         let response = match request.send() {
