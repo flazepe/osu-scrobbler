@@ -1,4 +1,4 @@
-use crate::logger::Logger;
+use crate::{logger::Logger, utils::exit};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use regex::{Regex, RegexBuilder};
@@ -25,15 +25,22 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn get_canonicalized_path() -> Result<PathBuf> {
+    fn get_canonicalized_path() -> Result<PathBuf> {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
         let config_path = env_config_path.as_deref().unwrap_or("config.toml");
         canonicalize(config_path).context("Could not resolve the path to config file.")
     }
 
-    pub fn read(path: &PathBuf) -> Result<Self> {
+    fn read(path: &PathBuf) -> Result<Self> {
         let config_string = read_to_string(path).context("An error occurred while trying to read config file.")?;
         from_str(&config_string).context("An error occurred while parsing config file.")
+    }
+
+    pub fn init() -> Self {
+        let config_path = Config::get_canonicalized_path().unwrap_or_else(|error| exit("Config", format!("{error:?}")));
+        let config = Config::read(&config_path).unwrap_or_else(|error| exit("Config", format!("{error:?}")));
+        Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()));
+        config
     }
 }
 
