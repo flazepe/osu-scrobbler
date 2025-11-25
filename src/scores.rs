@@ -1,5 +1,6 @@
 use crate::config::{Mode, ScrobblerConfig};
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
+use colored::Colorize;
 use musicbrainz_rs::{
     Search,
     entity::{
@@ -27,19 +28,21 @@ impl Score {
         let include_fails = config.scrobble_fails;
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
-        if !matches!(config.mode, Mode::Default) {
+        if config.mode != Mode::Default {
             request = request.query(&[("mode", &config.mode)]);
         }
 
-        let response = match request.send() {
-            Ok(response) => response,
-            Err(error) => bail!("Could not send request to get user's recent score: {error:?}"),
-        };
-
+        let response = request.send().context("Could not send request to get user's recent score.")?;
         let status_code = response.status();
 
         if status_code != StatusCode::OK {
-            bail!("Could not get user's recent score. Received status code: {status_code}");
+            let cause = if status_code == StatusCode::NOT_FOUND {
+                format!("Invalid user ID: {}", config.user_id.to_string().bright_blue())
+            } else {
+                format!("Received status code: {}", status_code.as_str().bright_blue())
+            };
+
+            bail!("Could not get user's recent score. {cause}");
         }
 
         let Ok(mut scores) = response.json::<Vec<Self>>() else { return Ok(None) };

@@ -86,8 +86,7 @@ impl ScrobblerConfig {
             }
 
             if key == "user_id" {
-                let new_recent_score = Score::get_user_recent(&new_config.scrobbler)?;
-                *recent_score = new_recent_score;
+                *recent_score = Score::get_user_recent(&new_config.scrobbler)?;
             }
 
             reloaded_keys.push(key);
@@ -120,7 +119,7 @@ impl ScrobblerConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Debug)]
+#[derive(Deserialize, Serialize, Default, PartialEq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
     #[default]

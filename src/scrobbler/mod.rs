@@ -44,9 +44,9 @@ impl Scrobbler {
     }
 
     pub fn start(&mut self) {
-        Logger::success("Scrobbler", "Started!");
+        self.recent_score = Score::get_user_recent(&self.config).unwrap_or_else(|error| exit("Scrobbler", format!("{error:?}")));
 
-        self.recent_score = Score::get_user_recent(&self.config).unwrap_or_default();
+        Logger::success("Scrobbler", "Started!");
 
         loop {
             self.cooldown_secs = 0;
@@ -85,9 +85,6 @@ impl Scrobbler {
                 self.recent_score = Some(score);
             },
             Err(error) => {
-                if error.to_string().contains("404") {
-                    exit("Scrobbler", "Invalid osu! user ID given.");
-                }
                 Logger::error("Scrobbler", error);
                 self.cooldown_secs += 10;
             },
