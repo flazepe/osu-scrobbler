@@ -72,7 +72,7 @@ pub struct ScrobblerConfig {
 }
 
 impl ScrobblerConfig {
-    pub fn sync(&mut self) -> Result<()> {
+    pub fn sync(&mut self, recent_score: &mut Option<Score>) -> Result<()> {
         let config_path = Config::get_canonicalized_path()?;
         let mut new_config = Config::read(&config_path)?;
         let new_config_value = to_value(&new_config.scrobbler)?;
@@ -85,10 +85,14 @@ impl ScrobblerConfig {
                 continue;
             }
 
-            // Keep the old user ID on the new config if it's an invalid user
-            if key == "user_id" && Score::get_user_recent(&new_config.scrobbler).is_err() {
-                new_config.scrobbler.user_id = self.user_id;
-                continue;
+            if key == "user_id" {
+                if let Ok(new_recent_score) = Score::get_user_recent(&new_config.scrobbler) {
+                    *recent_score = new_recent_score;
+                } else {
+                    // Keep the old user ID on the new config if it's an invalid user
+                    new_config.scrobbler.user_id = self.user_id;
+                    continue;
+                }
             }
 
             reloaded_keys.push(key);

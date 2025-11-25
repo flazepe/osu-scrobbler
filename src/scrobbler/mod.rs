@@ -54,7 +54,7 @@ impl Scrobbler {
     }
 
     fn poll(&mut self) {
-        _ = self.config.sync();
+        _ = self.config.sync(&mut self.recent_score);
 
         if get_osu_pid().is_none() {
             return;
