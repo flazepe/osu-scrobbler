@@ -137,7 +137,7 @@ impl Scrobbler {
         );
 
         if self.config.log_scrobbles {
-            Logger::file(format!("[{}] {artist} - {title}", score.ended_at));
+            Logger::file(format!("{} | {artist} - {title}", score.ended_at));
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {
