@@ -8,6 +8,7 @@ use crate::{
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
     utils::{exit, get_osu_pid, handle_redirects, validate_scrobble},
 };
+use anyhow::{Context, Result};
 use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{sync::LazyLock, thread::sleep, time::Duration};
@@ -17,6 +18,7 @@ static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 #[derive(Debug)]
 pub struct Scrobbler {
     config: ScrobblerConfig,
+    config_reload_result: Result<()>,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
@@ -28,11 +30,12 @@ impl Scrobbler {
         let config = Config::init();
 
         if config.last_fm.is_none() && config.listenbrainz.is_none() {
-            exit("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
+            exit("Scrobbler", "Please provide configuration for at least one scrobbler.");
         }
 
         Self {
             config: config.scrobbler,
+            config_reload_result: Ok(()),
             last_fm: config.last_fm.map(LastfmScrobbler::new),
             listenbrainz: config.listenbrainz.map(ListenBrainzScrobbler::new),
             recent_score: None,
@@ -47,19 +50,34 @@ impl Scrobbler {
 
         loop {
             self.cooldown_secs = 0;
-            self.poll();
+
+            self.reload_config();
+
+            if get_osu_pid().is_some() {
+                self.poll();
+            }
+
             self.cooldown_secs += 5;
+
             sleep(Duration::from_secs(self.cooldown_secs));
         }
     }
 
-    fn poll(&mut self) {
-        _ = self.config.sync(&mut self.recent_score);
+    fn reload_config(&mut self) {
+        if let Err(error) = self.config.reload(&mut self.recent_score).context("Could not reload config file.") {
+            let error_string = self.config_reload_result.as_ref().err().map(|error| format!("{error:?}")).unwrap_or_default();
+            let new_error_string = format!("{error:?}");
 
-        if get_osu_pid().is_none() {
-            return;
+            if error_string != new_error_string {
+                Logger::error("Config", new_error_string);
+                self.config_reload_result = Err(error);
+            }
+        } else {
+            self.config_reload_result = Ok(());
         }
+    }
 
+    fn poll(&mut self) {
         match Score::get_user_recent(&self.config) {
             Ok(score) => {
                 let Some(score) = score else { return };
