@@ -125,7 +125,9 @@ impl Scrobbler {
         Logger::success(
             "Scrobbler",
             format!(
-                "New score found: {}{} - {}{} ({})",
+                "New score by {} ({}) found: {}{} - {}{} ({})",
+                score.user.username.bright_blue(),
+                score.user.id.to_string().bright_blue(),
                 artist.bright_blue(),
                 artist_redirected_text.as_deref().unwrap_or_default(),
                 title.bright_blue(),

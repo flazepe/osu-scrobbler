@@ -18,6 +18,7 @@ pub struct Score {
     pub ended_at: String,
     pub beatmap: Beatmap,
     pub beatmapset: Beatmapset,
+    pub user: User,
 }
 
 impl Score {
@@ -144,4 +145,10 @@ pub struct Beatmapset {
     pub artist_unicode: String,
     pub title: String,
     pub title_unicode: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct User {
+    pub id: u32,
+    pub username: String,
 }
