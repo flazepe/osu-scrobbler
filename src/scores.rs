@@ -20,17 +20,6 @@ pub struct Score {
     pub beatmapset: Beatmapset,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ScoreMods {
-    pub acronym: String,
-    pub settings: Option<ScoreModSettings>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ScoreModSettings {
-    pub speed_change: Option<f64>,
-}
-
 impl Score {
     pub fn get_user_recent(config: &ScrobblerConfig) -> Result<Option<Self>> {
         let user_id = config.user_id;
@@ -129,6 +118,17 @@ impl Score {
 
         results.map(|results| results.entities).unwrap_or_default()
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ScoreMods {
+    pub acronym: String,
+    pub settings: Option<ScoreModSettings>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ScoreModSettings {
+    pub speed_change: Option<f64>,
 }
 
 #[derive(Deserialize, Debug)]

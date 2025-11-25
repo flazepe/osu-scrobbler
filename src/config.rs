@@ -1,4 +1,4 @@
-use crate::{logger::Logger, utils::exit};
+use crate::{logger::Logger, scores::Score, utils::exit};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use regex::{Regex, RegexBuilder};
@@ -7,12 +7,13 @@ use serde::{
     de::{SeqAccess, Visitor},
     ser::SerializeSeq,
 };
-use serde_json::to_string;
+use serde_json::{to_string, to_value};
 use serde_regex::Serde as SerdeRegex;
 use std::{
     env::var,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
     fs::{canonicalize, read_to_string},
+    mem::replace,
     path::PathBuf,
 };
 use toml::from_str;
@@ -44,7 +45,7 @@ impl Config {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ScrobblerConfig {
     pub user_id: u64,
 
@@ -71,19 +72,44 @@ pub struct ScrobblerConfig {
 }
 
 impl ScrobblerConfig {
-    pub fn sync(&mut self) {
-        let Ok(config_path) = Config::get_canonicalized_path() else { return };
-        let Ok(new_config) = Config::read(&config_path) else { return };
+    pub fn sync(&mut self) -> Result<()> {
+        let config_path = Config::get_canonicalized_path()?;
+        let mut new_config = Config::read(&config_path)?;
+        let new_config_value = to_value(&new_config.scrobbler)?;
 
-        if to_string(&new_config.scrobbler.redirects).unwrap_or_default() != to_string(&self.redirects).unwrap_or_default() {
-            self.redirects = new_config.scrobbler.redirects;
-            Logger::success("Config", format!("Successfully reloaded redirects from {}.", config_path.to_string_lossy().bright_blue()));
+        let config_value = to_value(&self)?;
+        let mut reloaded_keys = vec![];
+
+        for (key, value) in config_value.as_object().context("Could not get config value as an object.")? {
+            if to_string(&value)? == to_string(&new_config_value[key])? {
+                continue;
+            }
+
+            // Keep the old user ID on the new config if it's an invalid user
+            if key == "user_id" && Score::get_user_recent(&new_config.scrobbler).is_err() {
+                new_config.scrobbler.user_id = self.user_id;
+                continue;
+            }
+
+            reloaded_keys.push(key);
         }
 
-        if to_string(&new_config.scrobbler.blacklist).unwrap_or_default() != to_string(&self.blacklist).unwrap_or_default() {
-            self.blacklist = new_config.scrobbler.blacklist;
-            Logger::success("Config", format!("Successfully reloaded blacklist from {}.", config_path.to_string_lossy().bright_blue()));
+        if reloaded_keys.is_empty() {
+            return Ok(());
         }
+
+        _ = replace(self, new_config.scrobbler);
+
+        Logger::success(
+            "Config",
+            format!(
+                "Successfully reloaded {} from {}.",
+                reloaded_keys.iter().map(|key| key.bright_blue().to_string()).collect::<Vec<String>>().join(", "),
+                config_path.to_string_lossy().bright_blue(),
+            ),
+        );
+
+        Ok(())
     }
 
     fn use_original_metadata_default() -> bool {
