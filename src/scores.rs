@@ -45,7 +45,7 @@ impl Score {
             bail!("Could not get user's recent score. {cause}");
         }
 
-        let Ok(mut scores) = response.json::<Vec<Self>>() else { return Ok(None) };
+        let mut scores = response.json::<Vec<Self>>().context("Could not deserialize user's recent scores.")?;
 
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
     }
