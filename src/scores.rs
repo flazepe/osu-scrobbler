@@ -24,7 +24,7 @@ pub struct Score {
 impl Score {
     pub fn get_user_recent(config: &ScrobblerConfig) -> Result<Option<Self>> {
         let user_id = config.user_id;
-        let include_fails: bool = config.scrobble_fails;
+        let include_fails = config.scrobble_fails;
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
         if !matches!(config.mode, Mode::Default) {
