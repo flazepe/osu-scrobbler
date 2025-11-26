@@ -81,19 +81,17 @@ impl ScrobblerConfig {
         let mut reloaded_keys = vec![];
 
         for (key, value) in config_value.as_object().context("Could not get config value as an object.")? {
-            if to_string(&value)? == to_string(&new_config_value[key])? {
-                continue;
+            if to_string(&value)? != to_string(&new_config_value[key])? {
+                reloaded_keys.push(key.as_str());
             }
-
-            if key == "user_id" {
-                *recent_score = Score::get_user_recent(&new_config.scrobbler)?;
-            }
-
-            reloaded_keys.push(key);
         }
 
         if reloaded_keys.is_empty() {
             return Ok(());
+        }
+
+        if ["user_id", "scrobble_fails"].iter().any(|key| reloaded_keys.contains(key)) {
+            *recent_score = Score::get_user_recent(&new_config.scrobbler)?;
         }
 
         _ = replace(self, new_config.scrobbler);
