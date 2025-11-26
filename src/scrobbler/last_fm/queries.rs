@@ -1,19 +1,19 @@
 use md5::compute;
 use std::{collections::BTreeMap, fmt::Display};
 
-pub struct LastfmQuery(BTreeMap<String, String>);
+pub struct LastfmQuery<'a>(BTreeMap<&'a str, String>);
 
-impl LastfmQuery {
+impl<'a> LastfmQuery<'a> {
     pub fn new() -> Self {
         Self(BTreeMap::new())
     }
 
-    pub fn insert<T: Display, U: Display>(mut self, key: T, value: U) -> Self {
-        self.0.insert(key.to_string(), value.to_string());
+    pub fn insert<T: Display>(mut self, key: &'a str, value: T) -> Self {
+        self.0.insert(key, value.to_string());
         self
     }
 
-    pub fn sign<T: Display>(self, api_secret: T) -> BTreeMap<String, String> {
+    pub fn sign<T: Display>(self, api_secret: T) -> BTreeMap<&'a str, String> {
         let api_sig = format!(
             "{:x}",
             compute(self.0.iter().fold("".into(), |acc, (key, value)| format!("{acc}{key}{value}")) + &api_secret.to_string()),

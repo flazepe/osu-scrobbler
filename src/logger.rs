@@ -5,7 +5,7 @@ use std::{fmt::Display, fs::OpenOptions, io::Write};
 pub struct Logger;
 
 impl Logger {
-    pub fn log<T: Display, U: Into<Color>>(tag: &str, tag_color: U, message: T) {
+    pub fn log<T: Into<Color>, U: Display>(tag: &str, tag_color: T, message: U) {
         let is_sub = tag.starts_with('\t');
         let tag = if is_sub { format!("\t[{}]", tag.trim()) } else { format!("[{tag}]") };
         println!("{} {} {message}", Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false).bright_black(), tag.color(tag_color));

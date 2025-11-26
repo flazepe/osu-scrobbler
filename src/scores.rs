@@ -10,7 +10,6 @@ use musicbrainz_rs::{
 };
 use reqwest::{StatusCode, blocking::Client};
 use serde::Deserialize;
-use std::fmt::Display;
 
 #[derive(Deserialize, Debug)]
 pub struct Score {
@@ -51,7 +50,7 @@ impl Score {
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
     }
 
-    pub fn get_album_name<T: Display, U: Display>(&self, artist: T, title: U) -> Option<String> {
+    pub fn get_album_name(&self, artist: &str, title: &str) -> Option<String> {
         let mut title_album = None;
         let mut title_ep = None;
         let mut title_single = None;
@@ -93,7 +92,7 @@ impl Score {
         title_album.or(title_ep).or(title_single).or(title_other).or(title_unrecognized).or(title_first)
     }
 
-    fn get_musicbrainz_recordings<T: Display, U: Display>(&self, artist: T, title: U) -> Vec<Recording> {
+    fn get_musicbrainz_recordings(&self, artist: &str, title: &str) -> Vec<Recording> {
         let artist = artist.to_string();
         let title = title.to_string();
 
