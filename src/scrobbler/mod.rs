@@ -29,10 +29,6 @@ impl Scrobbler {
     pub fn new() -> Self {
         let config = Config::init();
 
-        if config.last_fm.is_none() && config.listenbrainz.is_none() {
-            exit("Scrobbler", "Please provide configuration for at least one scrobbler.");
-        }
-
         Self {
             config: config.scrobbler,
             config_reload_result: Ok(()),

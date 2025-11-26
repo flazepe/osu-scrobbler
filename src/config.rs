@@ -40,7 +40,13 @@ impl Config {
     pub fn init() -> Self {
         let config_path = Config::get_canonicalized_path().unwrap_or_else(|error| exit("Config", format!("{error:?}")));
         let config = Config::read(&config_path).unwrap_or_else(|error| exit("Config", format!("{error:?}")));
+
         Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()));
+
+        if config.last_fm.is_none() && config.listenbrainz.is_none() {
+            exit("Config", "Please provide configuration for at least one scrobbler.");
+        }
+
         config
     }
 }
