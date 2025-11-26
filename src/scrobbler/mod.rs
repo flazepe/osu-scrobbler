@@ -64,13 +64,12 @@ impl Scrobbler {
     }
 
     fn reload_config(&mut self) {
-        if let Err(error) = self.config.reload(&mut self.recent_score).context("Could not reload config file.") {
-            let error_string = self.config_reload_result.as_ref().err().map(|error| format!("{error:?}")).unwrap_or_default();
-            let new_error_string = format!("{error:?}");
+        if let Err(new_error) = self.config.reload(&mut self.recent_score).context("Could not reload config file.") {
+            let new_error_string = format!("{new_error:?}");
 
-            if error_string != new_error_string {
+            if self.config_reload_result.as_ref().err().is_none_or(|error| format!("{error:?}") != new_error_string) {
                 Logger::error("Config", new_error_string);
-                self.config_reload_result = Err(error);
+                self.config_reload_result = Err(new_error);
             }
         } else {
             self.config_reload_result = Ok(());
