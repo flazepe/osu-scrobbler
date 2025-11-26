@@ -10,6 +10,7 @@ use musicbrainz_rs::{
 };
 use reqwest::{StatusCode, blocking::Client};
 use serde::Deserialize;
+use std::fmt::Display;
 
 #[derive(Deserialize, Debug)]
 pub struct Score {
@@ -50,7 +51,7 @@ impl Score {
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
     }
 
-    pub fn get_album_name(&self) -> Option<String> {
+    pub fn get_album_name<T: Display, U: Display>(&self, artist: T, title: U) -> Option<String> {
         let mut title_album = None;
         let mut title_ep = None;
         let mut title_single = None;
@@ -58,7 +59,7 @@ impl Score {
         let mut title_unrecognized = None;
         let mut title_first = None;
 
-        for recording in self.get_musicbrainz_recordings() {
+        for recording in self.get_musicbrainz_recordings(artist, title) {
             let Some(releases) = recording.releases else { continue };
 
             for release in releases {
@@ -92,12 +93,19 @@ impl Score {
         title_album.or(title_ep).or(title_single).or(title_other).or(title_unrecognized).or(title_first)
     }
 
-    fn get_musicbrainz_recordings(&self) -> Vec<Recording> {
+    fn get_musicbrainz_recordings<T: Display, U: Display>(&self, artist: T, title: U) -> Vec<Recording> {
+        let artist = artist.to_string();
+        let title = title.to_string();
+
         let mut query_artist = RecordingSearchQuery::query_builder();
         query_artist
+            .artist(&artist)
+            .or()
             .artist(&self.beatmapset.artist)
             .or()
             .artist(&self.beatmapset.artist_unicode)
+            .or()
+            .artist_name(&artist)
             .or()
             .artist_name(&self.beatmapset.artist)
             .or()
@@ -105,13 +113,19 @@ impl Score {
 
         let mut query_title = RecordingSearchQuery::query_builder();
         query_title
+            .recording(&title)
+            .or()
             .recording(&self.beatmapset.title)
             .or()
             .recording(&self.beatmapset.title_unicode)
             .or()
+            .recording_accent(&title)
+            .or()
             .recording_accent(&self.beatmapset.title)
             .or()
             .recording_accent(&self.beatmapset.title_unicode)
+            .or()
+            .alias(&title)
             .or()
             .alias(&self.beatmapset.title)
             .or()

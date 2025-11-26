@@ -134,7 +134,7 @@ impl Scrobbler {
             format!(" (redirected from {})", old_title.bright_blue())
         });
 
-        let album = score.get_album_name();
+        let album = score.get_album_name(artist, title);
 
         Logger::success(
             "Scrobbler",
