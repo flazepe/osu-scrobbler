@@ -1,3 +1,4 @@
+use chrono::Local;
 use colored::{Color, Colorize};
 use std::{fmt::Display, fs::OpenOptions, io::Write};
 
@@ -5,9 +6,9 @@ pub struct Logger;
 
 impl Logger {
     pub fn log<T: Display, U: Into<Color>>(tag: &str, tag_color: U, message: T) {
-        let tag = if tag.starts_with('\t') { format!("\t[{}]", tag.trim()) } else { format!("[{tag}]") };
-        let colored_tag = tag.color(tag_color);
-        println!("{colored_tag} {message}");
+        let is_sub = tag.starts_with('\t');
+        let tag = if is_sub { format!("\t[{}]", tag.trim()) } else { format!("[{tag}]") };
+        println!("{} {} {message}", Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false).bright_black(), tag.color(tag_color));
     }
 
     pub fn error<T: Display>(tag: &str, message: T) {

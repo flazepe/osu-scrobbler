@@ -11,8 +11,8 @@ use serde::Deserialize;
 const API_BASE_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 
 #[derive(Debug)]
-pub struct LastfmScrobbler<'a> {
-    config: &'a LastfmConfig,
+pub struct LastfmScrobbler {
+    config: LastfmConfig,
     session_key: String,
 }
 
@@ -27,8 +27,8 @@ struct LastfmSessionData {
     name: String,
 }
 
-impl<'a> LastfmScrobbler<'a> {
-    pub fn new(config: &'a LastfmConfig) -> Self {
+impl LastfmScrobbler {
+    pub fn new(config: LastfmConfig) -> Self {
         let response = REQWEST
             .post(API_BASE_URL)
             .header("content-length", "0")

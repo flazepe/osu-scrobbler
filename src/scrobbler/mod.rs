@@ -2,69 +2,88 @@ mod last_fm;
 mod listenbrainz;
 
 use crate::{
-    config::Config,
+    config::{Config, ScrobblerConfig},
     logger::Logger,
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
     utils::{exit, get_osu_pid, handle_redirects, validate_scrobble},
 };
+use anyhow::{Context, Result};
 use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{sync::LazyLock, thread::sleep, time::Duration};
 
-pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::get);
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
 #[derive(Debug)]
 pub struct Scrobbler {
-    last_fm: Option<LastfmScrobbler<'static>>,
-    listenbrainz: Option<ListenBrainzScrobbler<'static>>,
+    config: ScrobblerConfig,
+    config_reload_result: Result<()>,
+    last_fm: Option<LastfmScrobbler>,
+    listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
     cooldown_secs: u64,
 }
 
 impl Scrobbler {
     pub fn new() -> Self {
-        if CONFIG.last_fm.is_none() && CONFIG.listenbrainz.is_none() {
-            exit("Scrobbler", "Please provide configuration for either Last.fm or ListenBrainz.");
+        let config = Config::init();
+
+        if config.last_fm.is_none() && config.listenbrainz.is_none() {
+            exit("Scrobbler", "Please provide configuration for at least one scrobbler.");
         }
 
         Self {
-            last_fm: CONFIG.last_fm.as_ref().map(LastfmScrobbler::new),
-            listenbrainz: CONFIG.listenbrainz.as_ref().map(ListenBrainzScrobbler::new),
+            config: config.scrobbler,
+            config_reload_result: Ok(()),
+            last_fm: config.last_fm.map(LastfmScrobbler::new),
+            listenbrainz: config.listenbrainz.map(ListenBrainzScrobbler::new),
             recent_score: None,
             cooldown_secs: 0,
         }
     }
 
     pub fn start(&mut self) {
-        Logger::success("Scrobbler", "Started!");
+        self.recent_score = Score::get_user_recent(&self.config).unwrap_or_else(|error| exit("Scrobbler", format!("{error:?}")));
 
-        self.recent_score = Score::get_user_recent().unwrap_or_default();
+        Logger::success("Scrobbler", "Started!");
 
         loop {
             self.cooldown_secs = 0;
-            self.poll();
+
+            self.reload_config();
+
+            if get_osu_pid().is_some() {
+                self.poll();
+            }
+
             self.cooldown_secs += 5;
+
             sleep(Duration::from_secs(self.cooldown_secs));
         }
     }
 
-    fn poll(&mut self) {
-        if get_osu_pid().is_none() {
-            return;
-        }
+    fn reload_config(&mut self) {
+        if let Err(new_error) = self.config.reload(&mut self.recent_score).context("Could not reload config file.") {
+            let new_error_string = format!("{new_error:?}");
 
-        match Score::get_user_recent() {
+            if self.config_reload_result.as_ref().err().is_none_or(|error| format!("{error:?}") != new_error_string) {
+                Logger::error("Config", new_error_string);
+                self.config_reload_result = Err(new_error);
+            }
+        } else {
+            self.config_reload_result = Ok(());
+        }
+    }
+
+    fn poll(&mut self) {
+        match Score::get_user_recent(&self.config) {
             Ok(score) => {
                 let Some(score) = score else { return };
                 self.scrobble(&score);
                 self.recent_score = Some(score);
             },
             Err(error) => {
-                if error.to_string().contains("404") {
-                    exit("Scrobbler", "Invalid osu! user ID given.");
-                }
                 Logger::error("Scrobbler", error);
                 self.cooldown_secs += 10;
             },
@@ -82,12 +101,12 @@ impl Scrobbler {
         let mut artist = artist_romanized;
         let mut title = title_romanized;
 
-        if CONFIG.scrobbler.use_original_metadata {
+        if self.config.use_original_metadata {
             artist = artist_original;
             title = title_original;
         }
 
-        if let Err(error) = validate_scrobble(score) {
+        if let Err(error) = validate_scrobble(score, &self.config) {
             Logger::warn(
                 "Scrobbler",
                 format!(
@@ -101,7 +120,7 @@ impl Scrobbler {
             return;
         }
 
-        let (new_artist, new_title) = handle_redirects(score, artist, title);
+        let (new_artist, new_title) = handle_redirects(score, artist, title, &self.config);
 
         let artist_redirected_text = new_artist.as_ref().map(|new_artist| {
             let old_artist = artist;
@@ -120,7 +139,9 @@ impl Scrobbler {
         Logger::success(
             "Scrobbler",
             format!(
-                "New score found: {}{} - {}{} ({})",
+                "New score by {} ({}) found: {}{} - {}{} ({})",
+                score.user.username.bright_blue(),
+                score.user.id.to_string().bright_blue(),
                 artist.bright_blue(),
                 artist_redirected_text.as_deref().unwrap_or_default(),
                 title.bright_blue(),
@@ -129,8 +150,8 @@ impl Scrobbler {
             ),
         );
 
-        if CONFIG.scrobbler.log_scrobbles {
-            Logger::file(format!("[{}] {artist} - {title}", score.ended_at));
+        if self.config.log_scrobbles {
+            Logger::file(format!("{} | {artist} - {title}", score.ended_at));
         }
 
         if let Some(last_fm) = self.last_fm.as_ref() {

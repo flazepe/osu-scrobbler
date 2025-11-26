@@ -1,5 +1,6 @@
-use crate::{config::Mode, scrobbler::CONFIG};
-use anyhow::{Result, bail};
+use crate::config::{Mode, ScrobblerConfig};
+use anyhow::{Context, Result, bail};
+use colored::Colorize;
 use musicbrainz_rs::{
     Search,
     entity::{
@@ -18,41 +19,33 @@ pub struct Score {
     pub ended_at: String,
     pub beatmap: Beatmap,
     pub beatmapset: Beatmapset,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ScoreMods {
-    pub acronym: String,
-    pub settings: Option<ScoreModSettings>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ScoreModSettings {
-    pub speed_change: Option<f64>,
+    pub user: User,
 }
 
 impl Score {
-    pub fn get_user_recent() -> Result<Option<Self>> {
-        let user_id = CONFIG.scrobbler.user_id;
-        let include_fails = CONFIG.scrobbler.scrobble_fails;
+    pub fn get_user_recent(config: &ScrobblerConfig) -> Result<Option<Self>> {
+        let user_id = config.user_id;
+        let include_fails = config.scrobble_fails;
         let mut request = Client::new().get(format!("https://osu.ppy.sh/users/{user_id}/scores/recent?include_fails={include_fails}"));
 
-        if !matches!(CONFIG.scrobbler.mode, Mode::Default) {
-            request = request.query(&[("mode", &CONFIG.scrobbler.mode)]);
+        if config.mode != Mode::Default {
+            request = request.query(&[("mode", &config.mode)]);
         }
 
-        let response = match request.send() {
-            Ok(response) => response,
-            Err(error) => bail!("Could not send request to get user's recent score: {error:?}"),
-        };
-
+        let response = request.send().context("Could not send request to get user's recent score.")?;
         let status_code = response.status();
 
         if status_code != StatusCode::OK {
-            bail!("Could not get user's recent score. Received status code: {status_code}");
+            let cause = if status_code == StatusCode::NOT_FOUND {
+                format!("Invalid user ID: {}", config.user_id.to_string().bright_blue())
+            } else {
+                format!("Received status code: {}", status_code.as_str().bright_blue())
+            };
+
+            bail!("Could not get user's recent score. {cause}");
         }
 
-        let Ok(mut scores) = response.json::<Vec<Self>>() else { return Ok(None) };
+        let mut scores = response.json::<Vec<Self>>().context("Could not deserialize user's recent scores.")?;
 
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
     }
@@ -132,6 +125,17 @@ impl Score {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct ScoreMods {
+    pub acronym: String,
+    pub settings: Option<ScoreModSettings>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ScoreModSettings {
+    pub speed_change: Option<f64>,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Beatmap {
     pub version: String,
     pub total_length: u32,
@@ -144,4 +148,10 @@ pub struct Beatmapset {
     pub artist_unicode: String,
     pub title: String,
     pub title_unicode: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct User {
+    pub id: u32,
+    pub username: String,
 }
