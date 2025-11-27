@@ -11,13 +11,18 @@ use crate::{
 use anyhow::{Context, Result};
 use colored::Colorize;
 use reqwest::blocking::Client;
-use std::{sync::LazyLock, thread::sleep, time::Duration};
+use std::{
+    sync::LazyLock,
+    thread::sleep,
+    time::{Duration, SystemTime},
+};
 
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
 
 #[derive(Debug)]
 pub struct Scrobbler {
     config: ScrobblerConfig,
+    config_modified: SystemTime,
     config_reload_result: Result<()>,
     last_fm: Option<LastfmScrobbler>,
     listenbrainz: Option<ListenBrainzScrobbler>,
@@ -27,10 +32,11 @@ pub struct Scrobbler {
 
 impl Scrobbler {
     pub fn new() -> Self {
-        let config = Config::init();
+        let (config, config_modified) = Config::init();
 
         Self {
             config: config.scrobbler,
+            config_modified,
             config_reload_result: Ok(()),
             last_fm: config.last_fm.map(LastfmScrobbler::new),
             listenbrainz: config.listenbrainz.map(ListenBrainzScrobbler::new),
@@ -60,15 +66,23 @@ impl Scrobbler {
     }
 
     fn reload_config(&mut self) {
-        if let Err(new_error) = self.config.reload(&mut self.recent_score).context("Could not reload config file.") {
-            let new_error_string = format!("{new_error:?}");
+        match self.config.reload(&mut self.config_modified).context("Could not reload config file.") {
+            Ok(new_recent_score) => {
+                if let Some(new_recent_score) = new_recent_score {
+                    self.recent_score = Some(new_recent_score);
+                }
 
-            if self.config_reload_result.as_ref().err().is_none_or(|error| format!("{error:?}") != new_error_string) {
-                Logger::error("Config", new_error_string);
+                self.config_reload_result = Ok(());
+            },
+            Err(new_error) => {
+                let new_error_string = format!("{new_error:?}");
+
+                if self.config_reload_result.as_ref().err().is_none_or(|error| format!("{error:?}") != new_error_string) {
+                    Logger::error("Config", new_error_string);
+                }
+
                 self.config_reload_result = Err(new_error);
-            }
-        } else {
-            self.config_reload_result = Ok(());
+            },
         }
     }
 

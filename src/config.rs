@@ -12,9 +12,10 @@ use serde_regex::Serde as SerdeRegex;
 use std::{
     env::var,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
-    fs::{canonicalize, read_to_string},
+    fs::{canonicalize, metadata, read_to_string},
     mem::replace,
     path::PathBuf,
+    time::SystemTime,
 };
 use toml::from_str;
 
@@ -26,10 +27,10 @@ pub struct Config {
 }
 
 impl Config {
-    fn get_canonicalized_path() -> Result<PathBuf> {
+    fn get_path_and_modified() -> Result<(PathBuf, SystemTime)> {
         let env_config_path = var("OSU_SCROBBLER_CONFIG_PATH");
         let config_path = env_config_path.as_deref().unwrap_or("config.toml");
-        canonicalize(config_path).context("Could not resolve the path to config file.")
+        Ok((canonicalize(config_path).context("Could not resolve the path to config file.")?, metadata(config_path)?.modified()?))
     }
 
     fn read(path: &PathBuf) -> Result<Self> {
@@ -37,8 +38,8 @@ impl Config {
         from_str(&config_string).context("An error occurred while parsing config file.")
     }
 
-    pub fn init() -> Self {
-        let config_path = Config::get_canonicalized_path().unwrap_or_else(|error| exit("Config", format!("{error:?}")));
+    pub fn init() -> (Self, SystemTime) {
+        let (config_path, config_modified) = Self::get_path_and_modified().unwrap_or_else(|error| exit("Config", format!("{error:?}")));
         let config = Config::read(&config_path).unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
         Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()));
@@ -47,7 +48,7 @@ impl Config {
             exit("Config", "Please provide configuration for at least one scrobbler.");
         }
 
-        config
+        (config, config_modified)
     }
 }
 
@@ -78,8 +79,15 @@ pub struct ScrobblerConfig {
 }
 
 impl ScrobblerConfig {
-    pub fn reload(&mut self, recent_score: &mut Option<Score>) -> Result<()> {
-        let config_path = Config::get_canonicalized_path()?;
+    pub fn reload(&mut self, config_modified: &mut SystemTime) -> Result<Option<Score>> {
+        let (config_path, new_config_modified) = Config::get_path_and_modified()?;
+
+        if *config_modified == new_config_modified {
+            return Ok(None);
+        }
+
+        *config_modified = new_config_modified;
+
         let new_config = Config::read(&config_path)?;
         let new_config_value = to_value(&new_config.scrobbler)?;
 
@@ -93,12 +101,14 @@ impl ScrobblerConfig {
         }
 
         if reloaded_keys.is_empty() {
-            return Ok(());
+            return Ok(None);
         }
 
-        if ["user_id", "scrobble_fails"].iter().any(|key| reloaded_keys.contains(key)) {
-            *recent_score = Score::get_user_recent(&new_config.scrobbler)?;
-        }
+        let new_recent_score = if ["user_id", "scrobble_fails"].iter().any(|key| reloaded_keys.contains(key)) {
+            Score::get_user_recent(&new_config.scrobbler)?
+        } else {
+            None
+        };
 
         _ = replace(self, new_config.scrobbler);
 
@@ -111,7 +121,7 @@ impl ScrobblerConfig {
             ),
         );
 
-        Ok(())
+        Ok(new_recent_score)
     }
 
     fn use_original_metadata_default() -> bool {
