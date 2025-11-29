@@ -214,7 +214,7 @@ fn deserialize_case_insensitive_redirects_vec<'de, D: Deserializer<'de>>(deseria
         type Value = Vec<(String, String)>;
 
         fn expecting(&self, formatter: &mut Formatter) -> FmtResult {
-            formatter.write_str("an array of tuples containing a regex pattern and replacer string")
+            formatter.write_str("an array of tuples containing a string and replacer string")
         }
 
         fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
