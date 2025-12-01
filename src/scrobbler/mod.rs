@@ -49,7 +49,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         self.recent_score = Score::get_user_recent(&self.config).unwrap_or_else(|error| exit("Scrobbler", format!("{error:?}")));
 
-        Logger::success("Scrobbler", "Started!", false);
+        Logger::success("Scrobbler", format!("Started! ({})", format!("v{}", env!("CARGO_PKG_VERSION")).bright_blue()), false);
 
         loop {
             self.cooldown_secs = 0;
