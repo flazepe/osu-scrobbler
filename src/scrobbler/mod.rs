@@ -33,6 +33,8 @@ pub struct Scrobbler {
 
 impl Scrobbler {
     pub fn new() -> Self {
+        Logger::success("Scrobbler", format!("Starting... ({})", format!("v{}", env!("CARGO_PKG_VERSION")).bright_blue()), false);
+
         let (config, config_modified) = Config::init();
 
         Self {
@@ -49,7 +51,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         self.recent_score = Score::get_user_recent(&self.config).unwrap_or_else(|error| exit("Scrobbler", format!("{error:?}")));
 
-        Logger::success("Scrobbler", format!("Started! ({})", format!("v{}", env!("CARGO_PKG_VERSION")).bright_blue()), false);
+        Logger::success("Scrobbler", "Started!", false);
 
         loop {
             self.cooldown_secs = 0;
