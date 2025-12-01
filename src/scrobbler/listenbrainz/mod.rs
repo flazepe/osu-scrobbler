@@ -30,7 +30,7 @@ impl ListenBrainzScrobbler {
             .and_then(|response| response.json::<ListenBrainzToken>());
 
         let Ok(token) = response else { exit("ListenBrainz", "Invalid user token provided.") };
-        Logger::success("ListenBrainz", format!("Successfully authenticated with username {}.", token.user_name.bright_blue()));
+        Logger::success("ListenBrainz", format!("Successfully authenticated with username {}.", token.user_name.bright_blue()), false);
 
         Self { config }
     }

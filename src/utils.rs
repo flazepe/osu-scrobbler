@@ -6,7 +6,7 @@ use std::{borrow::Cow, fmt::Display, io::stdin, process::exit as process_exit};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 pub fn exit<T: Display>(tag: &str, message: T) -> ! {
-    Logger::error(tag, message);
+    Logger::error(tag, message, false);
     println!("\nPress enter to exit.");
     let _ = stdin().read_line(&mut String::new());
     process_exit(1);
@@ -43,6 +43,7 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str, config: &Scrob
                 Logger::success(
                     "Scrobbler",
                     format!("Regex {} matched artist {}. Applying...", regex.to_string().bright_blue(), haystack.bright_blue()),
+                    false,
                 );
 
                 new_artist = Some(clean_extra_whitespaces(regex.replace_all(haystack, replacer)));
@@ -68,6 +69,7 @@ pub fn handle_redirects(score: &Score, artist: &str, title: &str, config: &Scrob
                 Logger::success(
                     "Scrobbler",
                     format!("Regex {} matched title {}. Applying...", regex.to_string().bright_blue(), haystack.bright_blue()),
+                    false,
                 );
 
                 new_title = Some(clean_extra_whitespaces(regex.replace_all(haystack, replacer)));

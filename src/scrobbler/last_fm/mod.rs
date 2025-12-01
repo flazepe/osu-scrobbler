@@ -44,7 +44,7 @@ impl LastfmScrobbler {
             .and_then(|response| response.json::<LastfmSession>());
 
         let Ok(session) = response else { exit("Last.fm", "Invalid credentials provided.") };
-        Logger::success("Last.fm", format!("Successfully authenticated with username {}.", session.session.name.bright_blue()));
+        Logger::success("Last.fm", format!("Successfully authenticated with username {}.", session.session.name.bright_blue()), false);
 
         Self { config, session_key: session.session.key }
     }

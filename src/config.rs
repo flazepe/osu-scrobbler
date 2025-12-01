@@ -42,7 +42,7 @@ impl Config {
         let (config_path, config_modified) = Self::get_path_and_modified().unwrap_or_else(|error| exit("Config", format!("{error:?}")));
         let config = Config::read(&config_path).unwrap_or_else(|error| exit("Config", format!("{error:?}")));
 
-        Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()));
+        Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()), false);
 
         if config.last_fm.is_none() && config.listenbrainz.is_none() {
             exit("Config", "Please provide configuration for at least one scrobbler.");
@@ -119,6 +119,7 @@ impl ScrobblerConfig {
                 reloaded_keys.iter().map(|key| key.bright_blue().to_string()).collect::<Vec<String>>().join(", "),
                 config_path.to_string_lossy().bright_blue(),
             ),
+            false,
         );
 
         Ok(new_recent_score)

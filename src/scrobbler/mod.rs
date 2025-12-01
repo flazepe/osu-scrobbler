@@ -48,7 +48,7 @@ impl Scrobbler {
     pub fn start(&mut self) {
         self.recent_score = Score::get_user_recent(&self.config).unwrap_or_else(|error| exit("Scrobbler", format!("{error:?}")));
 
-        Logger::success("Scrobbler", "Started!");
+        Logger::success("Scrobbler", "Started!", false);
 
         loop {
             self.cooldown_secs = 0;
@@ -78,7 +78,7 @@ impl Scrobbler {
                 let new_error_string = format!("{new_error:?}");
 
                 if self.config_reload_result.as_ref().err().is_none_or(|error| format!("{error:?}") != new_error_string) {
-                    Logger::error("Config", new_error_string);
+                    Logger::error("Config", new_error_string, false);
                 }
 
                 self.config_reload_result = Err(new_error);
@@ -94,7 +94,7 @@ impl Scrobbler {
                 self.recent_score = Some(score);
             },
             Err(error) => {
-                Logger::error("Scrobbler", error);
+                Logger::error("Scrobbler", error, false);
                 self.cooldown_secs += 10;
             },
         }
@@ -125,6 +125,7 @@ impl Scrobbler {
                     title.bright_blue(),
                     score.beatmap.version.bright_blue(),
                 ),
+                false,
             );
 
             return;
@@ -158,6 +159,7 @@ impl Scrobbler {
                 title_redirected_text.as_deref().unwrap_or_default(),
                 album.as_deref().unwrap_or("Unknown Album").bright_blue(),
             ),
+            false,
         );
 
         if self.config.log_scrobbles {
@@ -166,15 +168,15 @@ impl Scrobbler {
 
         if let Some(last_fm) = self.last_fm.as_ref() {
             match last_fm.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
-                Ok(_) => Logger::success("\tLast.fm", "Successfully scrobbled score."),
-                Err(error) => Logger::error("\tLast.fm", error),
+                Ok(_) => Logger::success("Last.fm", "Successfully scrobbled score.", true),
+                Err(error) => Logger::error("Last.fm", error, true),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
             match listenbrainz.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
-                Ok(_) => Logger::success("\tListenBrainz", "Successfully scrobbled score."),
-                Err(error) => Logger::error("\tListenBrainz", error),
+                Ok(_) => Logger::success("ListenBrainz", "Successfully scrobbled score.", true),
+                Err(error) => Logger::error("ListenBrainz", error, true),
             };
         }
     }
