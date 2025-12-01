@@ -62,6 +62,9 @@ pub struct ScrobblerConfig {
     #[serde(default = "ScrobblerConfig::use_original_metadata_default")]
     pub use_original_metadata: bool,
 
+    #[serde(default)]
+    pub fetch_album_names: bool,
+
     #[serde(default = "ScrobblerConfig::min_beatmap_length_secs_default")]
     pub min_beatmap_length_secs: u32,
 

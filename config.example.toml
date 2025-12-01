@@ -2,6 +2,7 @@
 user_id = 8834263
 mode = "default"
 use_original_metadata = true
+fetch_album_names = false
 min_beatmap_length_secs = 60
 scrobble_fails = false
 log_scrobbles = false

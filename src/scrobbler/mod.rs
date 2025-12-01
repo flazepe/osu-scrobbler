@@ -171,7 +171,7 @@ impl Scrobbler {
             format!(" (redirected from {})", old_title.bright_blue())
         });
 
-        let album = score.get_album_name(artist, title);
+        let album = if self.config.fetch_album_names { score.get_album_name(artist, title) } else { None };
 
         Logger::success(
             "Scrobbler",
