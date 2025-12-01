@@ -9,6 +9,7 @@ use crate::{
     utils::{exit, get_osu_pid, handle_redirects, validate_scrobble},
 };
 use anyhow::{Context, Result};
+use chrono::DateTime;
 use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{
@@ -103,6 +104,31 @@ impl Scrobbler {
     fn scrobble(&mut self, score: &Score) {
         if self.recent_score.as_ref().is_some_and(|recent_score| recent_score.ended_at == score.ended_at) {
             return;
+        }
+
+        if !score.passed {
+            let started_at = score.started_at.as_ref().and_then(|started_at| DateTime::parse_from_rfc3339(started_at).ok());
+            let ended_at = DateTime::parse_from_rfc3339(&score.ended_at).ok();
+            let delta =
+                ended_at.and_then(|ended_at| started_at.map(|started_at| (ended_at - started_at).as_seconds_f64())).unwrap_or_default();
+
+            if delta > 0. {
+                let rate = score
+                    .mods
+                    .iter()
+                    .find(|score_mod| score_mod.acronym == "DT" || score_mod.acronym == "NC")
+                    .and_then(|score_mod| score_mod.settings.as_ref().map(|settings| settings.speed_change.unwrap_or(1.5)))
+                    .unwrap_or(1.);
+                let hit_length = score.beatmap.hit_length as f64 / rate;
+
+                // A valid scrobble should be half of the beatmap's hit length or 4 minutes, whichever occurs earlier
+                // This might go through if the user paused, took a long break, and continued (just to fail some time after)
+                let is_valid_scrobble = delta >= hit_length / 2. || delta >= 60. * 4.;
+
+                if !is_valid_scrobble {
+                    return;
+                }
+            }
         }
 
         let (artist_romanized, artist_original) = (&score.beatmapset.artist, &score.beatmapset.artist_unicode);
