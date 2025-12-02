@@ -16,3 +16,6 @@ serde_json = "1"
 serde_regex = "1"
 sysinfo = "0.37"
 toml = "0.9"
+
+[profile.release]
+strip = "symbols"
