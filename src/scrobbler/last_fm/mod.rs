@@ -1,7 +1,7 @@
 mod queries;
 
-use crate::{config::LastfmConfig, logger::Logger, scrobbler::REQWEST, utils::exit};
-use anyhow::{Result, bail};
+use crate::{config::LastfmConfig, logger::Logger, scrobbler::REQWEST};
+use anyhow::{Context, Result, bail};
 use chrono::Utc;
 use colored::Colorize;
 use queries::LastfmQuery;
@@ -28,7 +28,7 @@ struct LastfmSessionData {
 }
 
 impl LastfmScrobbler {
-    pub fn new(config: LastfmConfig) -> Self {
+    pub fn new(config: LastfmConfig) -> Result<Self> {
         let response = REQWEST
             .post(API_BASE_URL)
             .header("content-length", "0")
@@ -43,10 +43,10 @@ impl LastfmScrobbler {
             .send()
             .and_then(|response| response.json::<LastfmSession>());
 
-        let Ok(session) = response else { exit("Last.fm", "Invalid credentials provided.") };
+        let session = response.context("Invalid Last.fm credentials provided.")?;
         Logger::success("Last.fm", format!("Successfully authenticated with username {}.", session.session.name.bright_blue()), false);
 
-        Self { config, session_key: session.session.key }
+        Ok(Self { config, session_key: session.session.key })
     }
 
     pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32) -> Result<()> {

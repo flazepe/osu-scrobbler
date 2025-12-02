@@ -1,5 +1,5 @@
-use crate::{logger::Logger, scores::Score, utils::exit};
-use anyhow::{Context, Result};
+use crate::{logger::Logger, scores::Score};
+use anyhow::{Context, Result, bail};
 use colored::Colorize;
 use regex::{Regex, RegexBuilder};
 use serde::{
@@ -38,17 +38,17 @@ impl Config {
         from_str(&config_string).context("An error occurred while parsing config file.")
     }
 
-    pub fn init() -> (Self, SystemTime) {
-        let (config_path, config_modified) = Self::get_path_and_modified().unwrap_or_else(|error| exit("Config", format!("{error:?}")));
-        let config = Config::read(&config_path).unwrap_or_else(|error| exit("Config", format!("{error:?}")));
+    pub fn init() -> Result<(Self, SystemTime)> {
+        let (config_path, config_modified) = Self::get_path_and_modified()?;
+        let config = Config::read(&config_path)?;
 
         Logger::success("Config", format!("Successfully loaded from {}: {config:#?}", config_path.to_string_lossy().bright_blue()), false);
 
         if config.last_fm.is_none() && config.listenbrainz.is_none() {
-            exit("Config", "Please provide configuration for at least one scrobbler.");
+            bail!("Please provide configuration for at least one scrobbler.");
         }
 
-        (config, config_modified)
+        Ok((config, config_modified))
     }
 }
 

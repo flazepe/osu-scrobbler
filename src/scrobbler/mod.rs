@@ -6,7 +6,7 @@ use crate::{
     logger::Logger,
     scores::Score,
     scrobbler::{last_fm::LastfmScrobbler, listenbrainz::ListenBrainzScrobbler},
-    utils::{exit, get_osu_pid, handle_redirects, validate_scrobble},
+    utils::{get_osu_pid, handle_redirects, validate_scrobble},
 };
 use anyhow::{Context, Result};
 use chrono::DateTime;
@@ -32,24 +32,26 @@ pub struct Scrobbler {
 }
 
 impl Scrobbler {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         Logger::success("Scrobbler", format!("Starting... ({})", format!("v{}", env!("CARGO_PKG_VERSION")).bright_blue()), false);
 
-        let (config, config_modified) = Config::init();
+        let (config, config_modified) = Config::init()?;
+        let last_fm = if let Some(c) = config.last_fm { Some(LastfmScrobbler::new(c)?) } else { None };
+        let listenbrainz = if let Some(c) = config.listenbrainz { Some(ListenBrainzScrobbler::new(c)?) } else { None };
 
-        Self {
+        Ok(Self {
             config: config.scrobbler,
             config_modified,
             config_reload_result: Ok(()),
-            last_fm: config.last_fm.map(LastfmScrobbler::new),
-            listenbrainz: config.listenbrainz.map(ListenBrainzScrobbler::new),
+            last_fm,
+            listenbrainz,
             recent_score: None,
             cooldown_secs: 0,
-        }
+        })
     }
 
-    pub fn start(&mut self) {
-        self.recent_score = Score::get_user_recent(&self.config).unwrap_or_else(|error| exit("Scrobbler", format!("{error:?}")));
+    pub fn start(&mut self) -> Result<()> {
+        self.recent_score = Score::get_user_recent(&self.config)?;
 
         Logger::success("Scrobbler", "Started!", false);
 

@@ -1,7 +1,7 @@
 mod payloads;
 
-use crate::{config::ListenBrainzConfig, logger::Logger, scrobbler::REQWEST, utils::exit};
-use anyhow::{Result, bail};
+use crate::{config::ListenBrainzConfig, logger::Logger, scrobbler::REQWEST};
+use anyhow::{Context, Result, bail};
 use colored::Colorize;
 use payloads::{Listen, ListenType, Listens};
 use reqwest::StatusCode;
@@ -20,7 +20,7 @@ struct ListenBrainzToken {
 }
 
 impl ListenBrainzScrobbler {
-    pub fn new(config: ListenBrainzConfig) -> Self {
+    pub fn new(config: ListenBrainzConfig) -> Result<Self> {
         let user_token = &config.user_token;
 
         let response = REQWEST
@@ -29,10 +29,10 @@ impl ListenBrainzScrobbler {
             .send()
             .and_then(|response| response.json::<ListenBrainzToken>());
 
-        let Ok(token) = response else { exit("ListenBrainz", "Invalid user token provided.") };
+        let token = response.context("Invalid ListenBrainz user token provided.")?;
         Logger::success("ListenBrainz", format!("Successfully authenticated with username {}.", token.user_name.bright_blue()), false);
 
-        Self { config }
+        Ok(Self { config })
     }
 
     pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32) -> Result<()> {

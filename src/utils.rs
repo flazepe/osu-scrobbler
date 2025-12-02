@@ -1,15 +1,8 @@
 use crate::{config::ScrobblerConfig, logger::Logger, scores::Score};
 use anyhow::{Result, bail};
 use colored::Colorize;
-use std::{borrow::Cow, fmt::Display, io::stdin, process::exit as process_exit};
+use std::borrow::Cow;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
-
-pub fn exit<T: Display>(tag: &str, message: T) -> ! {
-    Logger::error(tag, message, false);
-    println!("\nPress enter to exit.");
-    let _ = stdin().read_line(&mut String::new());
-    process_exit(1);
-}
 
 pub fn get_osu_pid() -> Option<u32> {
     let system = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()));
