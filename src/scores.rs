@@ -1,5 +1,6 @@
 use crate::config::{Mode, ScrobblerConfig};
 use anyhow::{Context, Result, bail};
+use chrono::{DateTime, Utc};
 use colored::Colorize;
 use musicbrainz_rs::{
     Search,
@@ -48,6 +49,34 @@ impl Score {
         let mut scores = response.json::<Vec<Self>>().context("Could not deserialize user's recent scores.")?;
 
         if scores.is_empty() { Ok(None) } else { Ok(Some(scores.remove(0))) }
+    }
+
+    /// The speed multiplier of the play's mods (e.g. 1.5 for DT/NC, 0.75 for HT/DC), or 1 without speed changing mods.
+    pub fn rate(&self) -> f64 {
+        for score_mod in &self.mods {
+            let default_rate = match score_mod.acronym.as_str() {
+                "DT" | "NC" => 1.5,
+                "HT" | "DC" => 0.75,
+                _ => continue,
+            };
+
+            return score_mod.settings.as_ref().and_then(|settings| settings.speed_change).unwrap_or(default_rate);
+        }
+
+        1.
+    }
+
+    /// The UNIX timestamp of when the play started, which is what Last.fm and ListenBrainz expect for a scrobble.
+    /// Scores without a start time (e.g. from osu!stable) use the end time minus the beatmap's length instead.
+    pub fn started_at_timestamp(&self) -> i64 {
+        if let Some(started_at) = self.started_at.as_ref().and_then(|started_at| DateTime::parse_from_rfc3339(started_at).ok()) {
+            return started_at.timestamp();
+        }
+
+        match DateTime::parse_from_rfc3339(&self.ended_at) {
+            Ok(ended_at) => ended_at.timestamp() - (self.beatmap.total_length as f64 / self.rate()).round() as i64,
+            Err(_) => Utc::now().timestamp(),
+        }
     }
 
     pub fn get_album_name(&self, artist: &str, title: &str) -> Option<String> {
