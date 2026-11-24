@@ -5,6 +5,7 @@ use_original_metadata = true
 fetch_album_names = false
 min_beatmap_length_secs = 60
 scrobble_fails = false
+repeat_cooldown_secs = 0
 log_scrobbles = false
 
 [scrobbler.redirects.artists]
