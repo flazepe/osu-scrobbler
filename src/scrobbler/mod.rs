@@ -9,16 +9,23 @@ use crate::{
     utils::{get_osu_pid, handle_redirects, validate_scrobble},
 };
 use anyhow::{Context, Result};
-use chrono::DateTime;
+use chrono::{DateTime, FixedOffset, Utc};
 use colored::Colorize;
 use reqwest::blocking::Client;
 use std::{
+    collections::HashMap,
     sync::LazyLock,
     thread::sleep,
     time::{Duration, SystemTime},
 };
 
 static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
+
+#[derive(Debug)]
+struct RecentSong {
+    last_played_at: DateTime<FixedOffset>,
+    skip_logged: bool,
+}
 
 #[derive(Debug)]
 pub struct Scrobbler {
@@ -29,6 +36,7 @@ pub struct Scrobbler {
     listenbrainz: Option<ListenBrainzScrobbler>,
     recent_score: Option<Score>,
     cooldown_secs: u64,
+    recent_songs: HashMap<String, RecentSong>,
 }
 
 impl Scrobbler {
@@ -47,6 +55,7 @@ impl Scrobbler {
             listenbrainz,
             recent_score: None,
             cooldown_secs: 0,
+            recent_songs: HashMap::new(),
         })
     }
 
@@ -145,6 +154,28 @@ impl Scrobbler {
             title = title_original;
         }
 
+        let played_at = DateTime::parse_from_rfc3339(&score.ended_at).unwrap_or_else(|_| Utc::now().fixed_offset());
+        let song = format!("{} - {}", score.beatmapset.artist.to_lowercase(), score.beatmapset.title.to_lowercase());
+
+        if let Some(first_skip) = self.check_repeat(&song, played_at) {
+            // Only log the first skip of a streak to avoid spamming the log while retrying a map
+            if first_skip {
+                Logger::warn(
+                    "Scrobbler",
+                    format!(
+                        "Skipping score {} - {} [{}]: Song was already scrobbled recently. Further plays won't be scrobbled until it hasn't been played for {}.",
+                        artist.bright_blue(),
+                        title.bright_blue(),
+                        score.beatmap.version.bright_blue(),
+                        format!("{}s", self.config.repeat_cooldown_secs).bright_blue(),
+                    ),
+                    false,
+                );
+            }
+
+            return;
+        }
+
         if let Err(error) = validate_scrobble(score, &self.config) {
             Logger::warn(
                 "Scrobbler",
@@ -173,6 +204,8 @@ impl Scrobbler {
             title = new_title;
             format!(" (redirected from {})", old_title.bright_blue())
         });
+
+        self.remember_song(song, played_at);
 
         let album = if self.config.fetch_album_names { score.get_album_name(artist, title) } else { None };
 
@@ -208,5 +241,41 @@ impl Scrobbler {
                 Err(error) => Logger::error("ListenBrainz", error, true),
             };
         }
+    }
+
+    /// Checks whether a song that was scrobbled recently is being played again within `repeat_cooldown_secs`.
+    /// Every repeated play restarts the cooldown, so retrying a map many times in a row only scrobbles it once.
+    /// Returns `None` if the play should be scrobbled, or `Some(first_skip)` if it should be skipped.
+    fn check_repeat(&mut self, song: &str, played_at: DateTime<FixedOffset>) -> Option<bool> {
+        let cooldown_secs = self.config.repeat_cooldown_secs as i64;
+
+        if cooldown_secs == 0 {
+            return None;
+        }
+
+        let recent_song = self.recent_songs.get_mut(song)?;
+
+        if (played_at - recent_song.last_played_at).num_seconds() >= cooldown_secs {
+            return None;
+        }
+
+        recent_song.last_played_at = played_at;
+
+        let first_skip = !recent_song.skip_logged;
+        recent_song.skip_logged = true;
+
+        Some(first_skip)
+    }
+
+    fn remember_song(&mut self, song: String, played_at: DateTime<FixedOffset>) {
+        let cooldown_secs = self.config.repeat_cooldown_secs as i64;
+
+        if cooldown_secs == 0 {
+            return;
+        }
+
+        // Forget songs whose cooldown has already passed
+        self.recent_songs.retain(|_, recent_song| (played_at - recent_song.last_played_at).num_seconds() < cooldown_secs);
+        self.recent_songs.insert(song, RecentSong { last_played_at: played_at, skip_logged: false });
     }
 }

@@ -72,6 +72,9 @@ pub struct ScrobblerConfig {
     pub scrobble_fails: bool,
 
     #[serde(default)]
+    pub repeat_cooldown_secs: u64,
+
+    #[serde(default)]
     pub log_scrobbles: bool,
 
     #[serde(default)]
