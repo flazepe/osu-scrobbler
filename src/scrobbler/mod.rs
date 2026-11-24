@@ -116,13 +116,7 @@ impl Scrobbler {
             let delta = ended_at.and_then(|ended_at| started_at.map(|started_at| (ended_at - started_at).as_seconds_f64()));
 
             if let Some(delta) = delta {
-                let rate = score
-                    .mods
-                    .iter()
-                    .find(|score_mod| score_mod.acronym == "DT" || score_mod.acronym == "NC")
-                    .and_then(|score_mod| score_mod.settings.as_ref().map(|settings| settings.speed_change.unwrap_or(1.5)))
-                    .unwrap_or(1.);
-                let hit_length = score.beatmap.hit_length as f64 / rate;
+                let hit_length = score.beatmap.hit_length as f64 / score.rate();
 
                 // A valid scrobble should be half of the beatmap's hit length or 4 minutes, whichever occurs earlier
                 // This might go through if the user paused, took a long break, and continued (just to fail some time after)
@@ -195,15 +189,17 @@ impl Scrobbler {
             Logger::file(format!("{} | {artist} - {title}", score.ended_at));
         }
 
+        let timestamp = score.started_at_timestamp();
+
         if let Some(last_fm) = self.last_fm.as_ref() {
-            match last_fm.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
+            match last_fm.scrobble(artist, title, album.as_deref(), score.beatmap.total_length, timestamp) {
                 Ok(_) => Logger::success("Last.fm", "Successfully scrobbled score.", true),
                 Err(error) => Logger::error("Last.fm", error, true),
             };
         }
 
         if let Some(listenbrainz) = self.listenbrainz.as_ref() {
-            match listenbrainz.scrobble(artist, title, album.as_deref(), score.beatmap.total_length) {
+            match listenbrainz.scrobble(artist, title, album.as_deref(), score.beatmap.total_length, timestamp) {
                 Ok(_) => Logger::success("ListenBrainz", "Successfully scrobbled score.", true),
                 Err(error) => Logger::error("ListenBrainz", error, true),
             };

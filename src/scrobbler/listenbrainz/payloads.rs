@@ -1,4 +1,3 @@
-use chrono::Utc;
 use serde::Serialize;
 use std::fmt::Display;
 
@@ -27,9 +26,15 @@ pub struct Listen {
 }
 
 impl Listen {
-    pub fn new<T: Display, U: Display, V: Display>(artist_name: T, track_name: U, release_name: Option<V>, duration: u32) -> Self {
+    pub fn new<T: Display, U: Display, V: Display>(
+        artist_name: T,
+        track_name: U,
+        release_name: Option<V>,
+        duration: u32,
+        listened_at: i64,
+    ) -> Self {
         Self {
-            listened_at: Utc::now().timestamp(),
+            listened_at,
             track_metadata: TrackMetadata::new(
                 artist_name,
                 track_name,

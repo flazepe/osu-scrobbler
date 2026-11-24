@@ -2,7 +2,6 @@ mod queries;
 
 use crate::{config::LastfmConfig, logger::Logger, scrobbler::REQWEST};
 use anyhow::{Context, Result, bail};
-use chrono::Utc;
 use colored::Colorize;
 use queries::LastfmQuery;
 use reqwest::StatusCode;
@@ -49,7 +48,7 @@ impl LastfmScrobbler {
         Ok(Self { config, session_key: session.session.key })
     }
 
-    pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32) -> Result<()> {
+    pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32, timestamp: i64) -> Result<()> {
         let status = REQWEST
             .post(API_BASE_URL)
             .header("content-length", "0")
@@ -62,7 +61,7 @@ impl LastfmScrobbler {
                     .insert("track[0]", title)
                     .insert("album[0]", album.unwrap_or_default())
                     .insert("duration[0]", total_length)
-                    .insert("timestamp[0]", Utc::now().timestamp())
+                    .insert("timestamp[0]", timestamp)
                     .sign(&self.config.api_secret),
             )
             .send()?

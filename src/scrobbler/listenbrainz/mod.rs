@@ -35,12 +35,12 @@ impl ListenBrainzScrobbler {
         Ok(Self { config })
     }
 
-    pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32) -> Result<()> {
+    pub fn scrobble(&self, artist: &str, title: &str, album: Option<&str>, total_length: u32, listened_at: i64) -> Result<()> {
         let user_token = &self.config.user_token;
         let status = REQWEST
             .post(format!("{API_BASE_URL}/submit-listens"))
             .header("authorization", format!("Token {user_token}"))
-            .json(&Listens::new(ListenType::Single, vec![Listen::new(artist, title, album, total_length)]))
+            .json(&Listens::new(ListenType::Single, vec![Listen::new(artist, title, album, total_length, listened_at)]))
             .send()?
             .status();
 
